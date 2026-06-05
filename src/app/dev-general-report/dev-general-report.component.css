@@ -1,0 +1,139 @@
+h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.info-card strong {
+  font-size: 16px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.info-card p {
+  color: #33415c;
+  margin: 0;
+  font-size: 14px;
+}
+
+.report-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.report-metric strong {
+  display: block;
+  font-size: 14px;
+  color: #33415c;
+}
+
+.report-metric span {
+  display: block;
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #005f73;
+}
+
+.report-list {
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 14px;
+  border: 1.5px solid rgba(0, 95, 115, 0.2);
+  overflow: hidden;
+}
+
+.report-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 0.8fr 0.8fr 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e6eef2;
+  font-size: 13px;
+}
+
+.report-row:last-child {
+  border-bottom: none;
+}
+
+.report-row-head {
+  background: #e0f1f5;
+  font-weight: 800;
+  color: #0d1b2a;
+}
+
+.student-link {
+  border: none;
+  background: transparent;
+  color: #005f73;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-align: left;
+  padding: 0;
+}
+
+.attempts-detail {
+  padding: 10px 12px;
+  background: #f7fbfd;
+  border-bottom: 1px solid #e6eef2;
+}
+
+.attempts-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: #33415c;
+  margin-bottom: 8px;
+}
+
+.attempts-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.8fr 0.9fr 0.7fr;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #d9e4ea;
+}
+
+.attempts-grid:last-child {
+  border-bottom: none;
+}
+
+.attempts-grid-head {
+  font-weight: 700;
+  color: #0d1b2a;
+  border-bottom: 1px solid #d9e4ea;
+}
+
+.lesson-access-grid {
+  grid-template-columns: 1.4fr 1fr 0.8fr;
+}
+
+@media (max-width: 400px) {
+  .report-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .report-row span {
+    display: block;
+  }
+
+  .attempts-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .attempts-grid span {
+    display: block;
+  }
+}

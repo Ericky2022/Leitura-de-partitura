@@ -1,0 +1,435 @@
+<div class="screen" [class.active]="screen === 'home'">
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <h1>Treino de Teoria Musical</h1>
+    <p class="subtitle" *ngIf="!showOptions">
+      Informe seu nome e comece a aprender
+    </p>
+
+    <div class="card" *ngIf="!showOptions">
+      <input
+        type="text"
+        [(ngModel)]="playerNameInput"
+        placeholder="Digite seu nome aqui"
+        maxlength="50"
+      />
+    </div>
+
+    <div class="card info-card" *ngIf="!showOptions">
+      <strong>Aprenda Partitura brincando</strong>
+      <p>
+        Nosso objetivo é fazer você aprender música brincando, de uma maneira
+        descontraída.
+      </p>
+    </div>
+
+    <button
+      class="btn btn-primary btn-full"
+      *ngIf="!showOptions"
+      (click)="startTraining()"
+    >
+      Começar treino
+    </button>
+
+    <div class="home-content" *ngIf="showOptions">
+      <div class="card info-card">
+        <strong>Aluno: {{ playerName }}</strong>
+        <p>Aprenda partitura brincando</p>
+        <!-- <p>Registros salvos: {{ localPerformanceCount }}</p> -->
+      </div>
+
+      <button class="level-card level-learning" (click)="openPentagramaMenu()">
+        <div class="level-info">
+          <span class="level-title">Pentagrama</span>
+          <span class="level-sub">Conhecendo as notas até Avançado</span>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+
+      <button class="level-card level-ear" (click)="openEarMenu()">
+        <div class="level-info">
+          <span class="level-title">Teste de ouvido</span>
+          <span class="level-sub">Dó1 até Sol2</span>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+
+      <button class="level-card level-flute" (click)="openFluteLesson()">
+        <div class="level-info">
+          <span class="level-title">Prática de Flauta</span>
+          <span class="level-sub">32 aulas em vídeo</span>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+
+      <button class="level-card level-rhythm" (click)="openRhythmExercises()">
+        <div class="level-info">
+          <span class="level-title">Exercicio ritmico</span>
+          <span class="level-sub">Lista de exercicios com audio</span>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+
+      <div class="report-actions">
+        <button class="btn btn-secondary btn-full" (click)="openReport()">
+          Ver relatório
+        </button>
+        <button
+          class="btn btn-secondary btn-full"
+          *ngIf="isDevelopment"
+          (click)="openDevGeneralReport()"
+        >
+          Relatório geral (dev)
+        </button>
+        <button
+          class="btn btn-secondary btn-full"
+          (click)="clearPerformanceData()"
+        >
+          Limpar histórico
+        </button>
+      </div>
+    </div>
+
+    <footer class="home-footer">by EPS</footer>
+  </div>
+</div>
+
+<div class="screen" [class.active]="screen === 'report'">
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <button class="btn-back" (click)="goHome()">← Voltar</button>
+    <h2>Relatório de desempenho</h2>
+
+    <div class="card info-card" *ngIf="isReportLoading">
+      <strong>Carregando...</strong>
+      <p>Buscando dados no servidor.</p>
+    </div>
+
+    <div class="card info-card" *ngIf="reportError">
+      <strong>Falha ao carregar</strong>
+      <p>{{ reportError }}</p>
+    </div>
+
+    <div
+      class="card info-card"
+      *ngIf="!isReportLoading && !reportError && performanceCount === 0"
+    >
+      <strong>Sem registros ainda</strong>
+      <p>
+        O relatório será preenchido automaticamente quando você concluir as
+        fases.
+      </p>
+    </div>
+
+    <div
+      class="report-summary"
+      *ngIf="!isReportLoading && performanceCount > 0"
+    >
+      <div class="card report-metric">
+        <strong>Suas tentativas</strong>
+        <span>{{ performanceCount }}</span>
+      </div>
+      <div class="card report-metric">
+        <strong>Sua média</strong>
+        <span>{{ averagePercent.toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <div class="report-list" *ngIf="!isReportLoading && performanceCount > 0">
+      <div class="report-row report-row-head">
+        <span>Data</span>
+        <span>Aluno</span>
+        <span>Nível/Fase</span>
+        <span>Acertos</span>
+        <span>%</span>
+      </div>
+
+      <div class="report-row" *ngFor="let record of performanceRecords">
+        <span>{{ record.timestamp }}</span>
+        <span>{{ record.student }}</span>
+        <span>{{ record.level }} - F{{ record.phase }}</span>
+        <span>{{ record.score }}/{{ record.totalQuestions }}</span>
+        <span>{{ record.percent.toFixed(1) }}%</span>
+      </div>
+    </div>
+
+    <footer class="home-footer">by EPS</footer>
+  </div>
+</div>
+
+<div
+  class="screen"
+  [class.active]="screen === 'dev-report'"
+  *ngIf="isDevelopment"
+>
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <button class="btn-back" (click)="goHome()">← Voltar</button>
+    <app-dev-general-report></app-dev-general-report>
+    <footer class="home-footer">by EPS</footer>
+  </div>
+</div>
+
+<div class="screen" [class.active]="screen === 'phases'">
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <button class="btn-back" (click)="goHome()">← Voltar</button>
+    <h2>{{ levels[selectedLevelIndex].title }}</h2>
+    <p class="subtitle">
+      Duração: {{ levels[selectedLevelIndex].durationLabel }} por nota
+    </p>
+
+    <button
+      class="phase-card"
+      *ngFor="let phase of levels[selectedLevelIndex].phases; let i = index"
+      (click)="startExercise(levels[selectedLevelIndex].stageStart + i)"
+    >
+      <div
+        class="phase-number"
+        [style.background]="levels[selectedLevelIndex].accentColor"
+      >
+        {{ i + 1 }}
+      </div>
+      <div class="phase-desc">{{ phase }}</div>
+    </button>
+
+    <footer class="home-footer">by EPS</footer>
+  </div>
+</div>
+
+<div class="screen" [class.active]="screen === 'exercise'">
+  <div class="bg-pattern"></div>
+  <div class="container exercise-container" *ngIf="currentNote">
+    <button
+      class="btn-back"
+      (click)="
+        isLearningMode
+          ? returnToPreviousScreen()
+          : isEarMode
+            ? openEarMenu()
+            : closeModalToPhases()
+      "
+    >
+      ← Voltar
+    </button>
+
+    <div class="exercise-header">
+      <div>
+        <span class="ex-level-phase">{{ levelPhaseLabel }}</span>
+        <span class="ex-student">Aluno: {{ playerName }}</span>
+      </div>
+      <div class="ex-meta" *ngIf="!isLearningMode">
+        <span>Exercício {{ currentQuestion }} de {{ totalQuestions }}</span>
+        <span>Pontuação: {{ score }}</span>
+      </div>
+      <div class="ex-meta" *ngIf="isLearningMode">
+        <span
+          >Nota {{ learningNoteIndex + 1 }} de
+          {{ learningNotesSequence.length }}</span
+        >
+      </div>
+    </div>
+
+    <div class="counter-row" *ngIf="!isEarMode && !isLearningMode">
+      <span class="counter">{{ counter }}/{{ stage.duration }}</span>
+      <div class="counter-bar-outer">
+        <div class="counter-bar" [style.width.%]="counterPercent"></div>
+      </div>
+    </div>
+
+    <div class="rhythm-label">{{ currentNote.rhythmLabel }}</div>
+
+    <button
+      class="btn btn-secondary"
+      *ngIf="isEarMode"
+      (click)="replayCurrentNote()"
+    >
+      Ouvir nota novamente
+    </button>
+
+    <div
+      class="staff-card"
+      *ngIf="!isEarMode || isAnswered"
+      [class.correct]="isEarMode && isAnswered && feedbackCorrect"
+      [class.wrong]="isEarMode && isAnswered && !feedbackCorrect"
+    >
+      <canvas #staffCanvas width="500" height="220"></canvas>
+    </div>
+
+    <p class="question-text">
+      {{
+        isLearningPhaseOne
+          ? "Observe a nota no pentagrama"
+          : isLearningPhaseTwo
+            ? "Qual é a nota?"
+            : isEarMode
+              ? "Qual é a nota tocada?"
+              : "Qual é a nota?"
+      }}
+    </p>
+
+    <div class="learning-note-name" *ngIf="isLearningPhaseOne && currentNote">
+      {{ learningNoteDisplayName }}
+    </div>
+
+    <div class="learning-controls" *ngIf="isLearningPhaseOne">
+      <button class="btn btn-secondary" (click)="previousLearningNote()">
+        Nota anterior
+      </button>
+      <button class="btn btn-primary" (click)="nextLearningNote()">
+        Próxima nota
+      </button>
+    </div>
+
+    <div class="options-grid" *ngIf="!isLearningMode || isLearningPhaseTwo">
+      <button
+        class="btn btn-note"
+        *ngFor="let option of currentOptions"
+        [disabled]="isAnswered && !isLearningPhaseTwo"
+        (click)="checkAnswer(option)"
+      >
+        {{ option }}
+      </button>
+    </div>
+
+    <div
+      class="feedback-card"
+      *ngIf="feedback && (!isLearningMode || isLearningPhaseTwo)"
+      [class.correct]="feedbackCorrect"
+      [class.wrong]="!feedbackCorrect"
+    >
+      {{ feedback }}
+    </div>
+
+    <footer class="home-footer">by EPS</footer>
+  </div>
+</div>
+
+<div class="screen" [class.active]="screen === 'ear-menu'">
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <button class="btn-back" (click)="goHome()">← Voltar</button>
+    <h2>Teste de ouvido</h2>
+    <p class="subtitle">Escolha o alcance de notas</p>
+
+    <button
+      class="phase-card"
+      *ngFor="let range of earRanges; let i = index"
+      (click)="startEarExercise(i)"
+    >
+      <div class="phase-number ear-number">{{ i + 1 }}</div>
+      <div class="phase-desc">{{ range.label }}</div>
+    </button>
+
+    <footer class="home-footer">by EPS</footer>
+  </div>
+</div>
+
+<div class="screen" [class.active]="screen === 'pentagrama'">
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <button class="btn-back" (click)="goHome()">← Voltar</button>
+    <h2>Pentagrama</h2>
+    <p class="subtitle">Escolha um caminho de estudo</p>
+
+    <button class="level-card level-learning" (click)="openLearningMenu()">
+      <div class="level-info">
+        <span class="level-title">Conhecendo as notas</span>
+        <span class="level-sub">Fase 1 e fase 2</span>
+      </div>
+      <span class="arrow">›</span>
+    </button>
+
+    <button class="level-card" (click)="openPhases(0)">
+      <div class="level-info">
+        <span class="level-title">Inicial</span>
+        <span class="level-sub">4 tempos</span>
+      </div>
+      <span class="arrow">›</span>
+    </button>
+
+    <button class="level-card level-mid" (click)="openPhases(1)">
+      <div class="level-info">
+        <span class="level-title">Intermediário</span>
+        <span class="level-sub">2 tempos</span>
+      </div>
+      <span class="arrow">›</span>
+    </button>
+
+    <button class="level-card level-hard" (click)="openPhases(2)">
+      <div class="level-info">
+        <span class="level-title">Avançado</span>
+        <span class="level-sub">1 tempo</span>
+      </div>
+      <span class="arrow">›</span>
+    </button>
+
+    <footer class="home-footer">by EPS</footer>
+  </div>
+</div>
+
+<div class="screen" [class.active]="screen === 'learning-menu'">
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <button class="btn-back" (click)="returnToPreviousScreen()">
+      ← Voltar
+    </button>
+    <h2>Conhecendo as notas</h2>
+    <p class="subtitle">Escolha a fase</p>
+
+    <button class="phase-card" (click)="startLearningPhase(1)">
+      <div class="phase-number learning-number">1</div>
+      <div class="phase-desc">Dó1 até Sol2 subindo e descendo</div>
+    </button>
+
+    <button class="phase-card" (click)="startLearningPhase(2)">
+      <div class="phase-number learning-number">2</div>
+      <div class="phase-desc">
+        Dó1 até Sol2 com botões e avanço só no acerto
+      </div>
+    </button>
+
+    <footer class="home-footer">by EPS</footer>
+  </div>
+</div>
+
+<div class="screen" [class.active]="screen === 'flute-lessons'">
+  <app-flute-lessons
+    (back)="returnToPreviousScreen()"
+    (lessonAccess)="registerFluteLessonAccess($event)"
+  ></app-flute-lessons>
+</div>
+
+<div class="screen" [class.active]="screen === 'rhythm-exercises'">
+  <app-rhythm-exercises
+    (back)="returnToPreviousScreen()"
+  ></app-rhythm-exercises>
+</div>
+
+<div class="modal-overlay" *ngIf="modalVisible && resultState">
+  <div class="modal">
+    <h2>{{ resultState.title }}</h2>
+    <p>{{ resultState.content }}</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" (click)="closeModalToPhases()">
+        Voltar ao menu de fases
+      </button>
+      <button
+        class="btn btn-secondary"
+        *ngIf="resultState.isGood"
+        (click)="retryCurrent()"
+      >
+        Tentar novamente
+      </button>
+      <button class="btn btn-primary" (click)="mainModalAction()">
+        {{
+          resultState.isBad
+            ? "Jogar novamente"
+            : resultState.isLast
+              ? "Finalizar"
+              : "Próximo exercício"
+        }}
+      </button>
+    </div>
+  </div>
+</div>

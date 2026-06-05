@@ -1,0 +1,108 @@
+<div class="rhythm-container">
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <ng-container *ngIf="!selectedExercise">
+      <button class="btn-back" (click)="goBack()">← Voltar</button>
+      <h2>Exercicio ritmico</h2>
+      <p class="subtitle">Escolha um exercicio para praticar</p>
+
+      <div class="exercise-list">
+        <button
+          class="exercise-card"
+          *ngFor="let exercise of exercises"
+          (click)="openExercise(exercise)"
+        >
+          <span class="exercise-number">{{ exercise.id }}</span>
+          <span class="exercise-title">{{ exercise.title }}</span>
+          <span class="exercise-arrow">›</span>
+        </button>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="selectedExercise">
+      <button class="btn-back" (click)="closeExercise()">
+        ← Voltar aos exercicios
+      </button>
+      <h2>{{ selectedExercise.title }}</h2>
+
+      <section class="rhythm-card">
+        <h3>Partitura</h3>
+        <img
+          class="rhythm-image"
+          [src]="selectedExercise.imageSrc"
+          [alt]="'Partitura do ' + selectedExercise.title"
+        />
+      </section>
+
+      <section class="rhythm-card">
+        <h3>Audio</h3>
+        <audio
+          #referenceAudio
+          class="rhythm-audio"
+          [src]="selectedExercise.audioSrc"
+          controls
+        ></audio>
+      </section>
+
+      <section class="rhythm-card">
+        <h3>Orientacao</h3>
+        <p class="status-info">
+          Ouça o áudio de referência e pratique acompanhando a partitura.
+        </p>
+
+        <div class="action-row">
+          <button
+            class="action-btn"
+            *ngIf="!isRecording"
+            (click)="startRecording()"
+            [disabled]="isAnalyzing"
+          >
+            Gravar ritmo
+          </button>
+
+          <button
+            class="action-btn stop"
+            *ngIf="isRecording"
+            (click)="stopRecording()"
+          >
+            Parar gravacao
+          </button>
+        </div>
+
+        <p class="status-info" *ngIf="isRecording">
+          Gravando... toque o ritmo e depois clique em parar.
+        </p>
+
+        <p class="status-info" *ngIf="isAnalyzing">
+          Analisando sua gravacao...
+        </p>
+
+        <p
+          class="status-info"
+          [class.ok]="canProceed"
+          [class.warn]="comparisonDone && !canProceed"
+          *ngIf="comparisonMessage"
+        >
+          {{ comparisonMessage }}
+        </p>
+
+        <p class="status-info" *ngIf="similarityPercent !== null">
+          Similaridade com a partitura: {{ similarityPercent }}%
+        </p>
+
+        <div *ngIf="recordedAudioUrl">
+          <h3>Seu audio gravado</h3>
+          <audio class="rhythm-audio" [src]="recordedAudioUrl" controls></audio>
+        </div>
+
+        <button
+          class="next-btn"
+          *ngIf="canProceed"
+          (click)="openNextExercise()"
+        >
+          Proximo exercicio
+        </button>
+      </section>
+    </ng-container>
+  </div>
+</div>

@@ -1,0 +1,177 @@
+<h2>Relatório geral (desenvolvimento)</h2>
+
+<div class="card info-card" *ngIf="isLoading">
+  <strong>Carregando...</strong>
+  <p>Buscando dados gerais dos usuários.</p>
+</div>
+
+<div class="card info-card" *ngIf="errorMessage">
+  <strong>Falha ao carregar</strong>
+  <p>{{ errorMessage }}</p>
+</div>
+
+<div
+  class="card info-card"
+  *ngIf="!isLoading && !errorMessage && lessonAccessError"
+>
+  <strong>Aviso</strong>
+  <p>{{ lessonAccessError }}</p>
+</div>
+
+<div class="report-summary" *ngIf="!isLoading && !errorMessage">
+  <div class="card report-metric">
+    <strong>Total de alunos</strong>
+    <span>{{ totalStudents }}</span>
+  </div>
+  <div class="card report-metric">
+    <strong>Total de tentativas</strong>
+    <span>{{ totalAttempts }}</span>
+  </div>
+  <div class="card report-metric">
+    <strong>Acessos as aulas</strong>
+    <span>{{ totalLessonAccesses }}</span>
+  </div>
+  <div class="card report-metric">
+    <strong>Acessos ao app</strong>
+    <span>{{ totalAppAccesses }}</span>
+  </div>
+</div>
+
+<div
+  class="card info-card"
+  *ngIf="!isLoading && !errorMessage && totalAttempts === 0"
+>
+  <strong>Sem registros ainda</strong>
+  <p>
+    O relatório geral será preenchido conforme os usuários realizarem
+    atividades.
+  </p>
+</div>
+
+<div
+  class="report-list"
+  *ngIf="!isLoading && !errorMessage && totalAttempts > 0"
+>
+  <div class="report-row report-row-head">
+    <span>Aluno</span>
+    <span>Tentativas</span>
+    <span>Média</span>
+    <span>Melhor %</span>
+    <span>Acertos</span>
+  </div>
+
+  <ng-container *ngFor="let summary of studentSummaries">
+    <div class="report-row">
+      <span>
+        <button
+          class="student-link"
+          type="button"
+          (click)="toggleStudentDetails(summary.student)"
+        >
+          {{ summary.student }}
+        </button>
+      </span>
+      <span>{{ summary.attempts }}</span>
+      <span>{{ summary.avgPercent.toFixed(1) }}%</span>
+      <span>{{ summary.bestPercent.toFixed(1) }}%</span>
+      <span>{{ summary.totalCorrect }}/{{ summary.totalQuestions }}</span>
+    </div>
+
+    <div class="attempts-detail" *ngIf="isStudentExpanded(summary.student)">
+      <div class="attempts-head">Tentativas detalhadas</div>
+      <div class="attempts-grid attempts-grid-head">
+        <span>Data</span>
+        <span>Nível</span>
+        <span>Fase</span>
+        <span>Acertos</span>
+        <span>%</span>
+      </div>
+
+      <div
+        class="attempts-grid"
+        *ngFor="let attempt of attemptsByStudent(summary.student)"
+      >
+        <span>{{ attempt.timestamp || "-" }}</span>
+        <span>{{ attempt.level || "-" }}</span>
+        <span>{{ attempt.phase || 0 }}</span>
+        <span>{{ attempt.score }}/{{ attempt.totalQuestions }}</span>
+        <span>{{ attempt.percent.toFixed(1) }}%</span>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<div
+  class="report-list"
+  *ngIf="!isLoading && !errorMessage && totalLessonAccesses > 0"
+>
+  <div class="report-row report-row-head">
+    <span>Aula</span>
+    <span>Acessos</span>
+    <span>Alunos</span>
+    <span>Ultimo acesso</span>
+    <span>Detalhes</span>
+  </div>
+
+  <ng-container *ngFor="let lesson of lessonAccessSummaries">
+    <div class="report-row">
+      <span>{{ lesson.lessonTitle }}</span>
+      <span>{{ lesson.totalAccesses }}</span>
+      <span>{{ lesson.uniqueStudents }}</span>
+      <span>{{
+        lesson.lastAccessAt
+          ? (lesson.lastAccessAt | date: "dd/MM/yyyy HH:mm")
+          : "-"
+      }}</span>
+      <span>
+        <button
+          class="student-link"
+          type="button"
+          (click)="toggleStudentDetails('lesson-' + lesson.lessonNumber)"
+        >
+          Ver
+        </button>
+      </span>
+    </div>
+
+    <div
+      class="attempts-detail"
+      *ngIf="isStudentExpanded('lesson-' + lesson.lessonNumber)"
+    >
+      <div class="attempts-head">Acessos da {{ lesson.lessonTitle }}</div>
+      <div class="attempts-grid attempts-grid-head lesson-access-grid">
+        <span>Data</span>
+        <span>Aluno</span>
+        <span>Fonte</span>
+      </div>
+
+      <div
+        class="attempts-grid lesson-access-grid"
+        *ngFor="let access of accessesByLesson(lesson.lessonNumber)"
+      >
+        <span>{{ access.timestamp || "-" }}</span>
+        <span>{{ access.student || "Sem nome" }}</span>
+        <span>{{ access.sourceType }}</span>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<div
+  class="report-list"
+  *ngIf="!isLoading && !errorMessage && totalAppAccesses > 0"
+>
+  <div class="report-row report-row-head">
+    <span>Data</span>
+    <span>Aluno</span>
+  </div>
+
+  <div
+    class="attempts-grid lesson-access-grid"
+    style="grid-template-columns: 1fr 1fr"
+    *ngFor="let access of appAccessRecords"
+  >
+    <span>{{ access.timestamp || "-" }}</span>
+    <span>{{ access.student || "Sem nome" }}</span>
+  </div>
+</div>

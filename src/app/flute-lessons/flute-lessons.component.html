@@ -1,0 +1,101 @@
+<div class="flute-lessons-container">
+  <div class="bg-pattern"></div>
+  <div class="container">
+    <!-- Tela de listagem -->
+    <ng-container *ngIf="!selectedLesson">
+      <button class="btn-back" (click)="goBack()">← Voltar</button>
+      <h2>Prática de Flauta</h2>
+      <p class="subtitle">Selecione uma aula para assistir</p>
+
+      <div class="lessons-grid">
+        <button
+          class="lesson-card"
+          *ngFor="let lesson of lessons"
+          (click)="openLesson(lesson)"
+        >
+          <span class="lesson-number">{{ lesson.number }}</span>
+          <span class="lesson-title">{{ lesson.title }}</span>
+          <span class="lesson-arrow">▶</span>
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- Player de vídeo -->
+    <ng-container *ngIf="selectedLesson">
+      <button class="btn-back" (click)="closeLesson()">
+        ← Voltar às aulas
+      </button>
+      <h2>{{ selectedLesson.title }}</h2>
+
+      <div class="video-wrapper">
+        <iframe
+          *ngIf="selectedLesson.sourceType === 'youtube' && currentEmbedUrl"
+          class="lesson-embed"
+          [src]="currentEmbedUrl"
+          title="Video da {{ selectedLesson.title }}"
+          allow="
+            accelerometer;
+            autoplay;
+            clipboard-write;
+            encrypted-media;
+            gyroscope;
+            picture-in-picture;
+            web-share;
+          "
+          allowfullscreen
+          referrerpolicy="strict-origin-when-cross-origin"
+        ></iframe>
+
+        <video
+          *ngIf="selectedLesson.sourceType === 'local'"
+          class="lesson-video"
+          [src]="selectedLesson.videoSrc"
+          controls
+          autoplay
+        >
+          <track
+            kind="captions"
+            [attr.src]="selectedLesson.captionSrc"
+            srclang="pt-BR"
+            label="Português"
+            default
+          />
+          Seu navegador não suporta vídeo HTML5.
+        </video>
+      </div>
+
+      <section class="score-card" *ngIf="selectedLesson.scoreImageSrc">
+        <h3>Partitura da aula</h3>
+        <img
+          *ngIf="!scoreImageLoadFailed"
+          class="score-image"
+          [src]="selectedLesson.scoreImageSrc"
+          [alt]="'Partitura da ' + selectedLesson.title"
+          (error)="handleScoreImageError()"
+        />
+        <p class="score-empty" *ngIf="scoreImageLoadFailed">
+          Coloque a imagem da partitura em assets/partituras/aula{{
+            selectedLesson.number
+          }}.png
+        </p>
+      </section>
+
+      <div class="lesson-nav">
+        <button
+          class="btn-nav btn-prev"
+          *ngIf="previousLesson"
+          (click)="openLesson(previousLesson!)"
+        >
+          ← Aula anterior
+        </button>
+        <button
+          class="btn-nav btn-next"
+          *ngIf="nextLesson"
+          (click)="openLesson(nextLesson!)"
+        >
+          Próxima aula →
+        </button>
+      </div>
+    </ng-container>
+  </div>
+</div>

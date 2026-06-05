@@ -1,0 +1,174 @@
+.rhythm-container {
+  min-height: 100vh;
+  position: relative;
+}
+
+.bg-pattern {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-color: #e8f4f8;
+  background-image: url("../assets/images/home_background.svg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+h2 {
+  color: #0d1b2a;
+  font-size: 1.6rem;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.subtitle {
+  color: #1b263b;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: #33415c;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.btn-back:hover {
+  color: #005f73;
+}
+
+.exercise-list {
+  display: grid;
+  gap: 10px;
+}
+
+.exercise-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 95, 115, 0.28);
+  border-radius: 12px;
+  padding: 14px 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #0d1b2a;
+  text-align: left;
+}
+
+.exercise-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #005f73;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.exercise-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.exercise-arrow {
+  font-size: 1.3rem;
+  color: #005f73;
+}
+
+.rhythm-card {
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 95, 115, 0.2);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.rhythm-card h3 {
+  margin: 0 0 10px;
+  color: #0d1b2a;
+  font-size: 1rem;
+}
+
+.rhythm-image {
+  width: 100%;
+  display: block;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.rhythm-audio {
+  width: 100%;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #005f73;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.action-btn.stop {
+  background: #9b2226;
+}
+
+.status-info {
+  margin: 10px 0;
+  color: #33415c;
+  font-size: 0.92rem;
+}
+
+.status-info.ok {
+  color: #1d6b3d;
+  font-weight: 600;
+}
+
+.status-info.warn {
+  color: #8a3d00;
+  font-weight: 600;
+}
+
+.next-btn {
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: #2e7d32;
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
