@@ -54,57 +54,57 @@ export class ScoreReaderComponent implements OnDestroy {
 
   private readonly noteFrequencyByName: Record<string, number> = {
     c3: 130.81,
-    "do3": 130.81,
-    "dó3": 130.81,
+    do3: 130.81,
+    dó3: 130.81,
     d3: 146.83,
     re3: 146.83,
-    "ré3": 146.83,
+    ré3: 146.83,
     e3: 164.81,
     mi3: 164.81,
     f3: 174.61,
     fa3: 174.61,
-    "fá3": 174.61,
+    fá3: 174.61,
     g3: 196,
     sol3: 196,
     a3: 220,
     la3: 220,
-    "lá3": 220,
+    lá3: 220,
     b3: 246.94,
     si3: 246.94,
     c4: 261.63,
-    "do4": 261.63,
-    "dó4": 261.63,
+    do4: 261.63,
+    dó4: 261.63,
     d4: 293.66,
     re4: 293.66,
-    "ré4": 293.66,
+    ré4: 293.66,
     e4: 329.63,
     mi4: 329.63,
     f4: 349.23,
     fa4: 349.23,
-    "fá4": 349.23,
+    fá4: 349.23,
     g4: 392,
     sol4: 392,
     a4: 440,
     la4: 440,
-    "lá4": 440,
+    lá4: 440,
     b4: 493.88,
     si4: 493.88,
     c5: 523.25,
-    "do5": 523.25,
-    "dó5": 523.25,
+    do5: 523.25,
+    dó5: 523.25,
     d5: 587.33,
     re5: 587.33,
-    "ré5": 587.33,
+    ré5: 587.33,
     e5: 659.25,
     mi5: 659.25,
     f5: 698.46,
     fa5: 698.46,
-    "fá5": 698.46,
+    fá5: 698.46,
     g5: 783.99,
     sol5: 783.99,
     a5: 880,
     la5: 880,
-    "lá5": 880,
+    lá5: 880,
     b5: 987.77,
     si5: 987.77,
   };
@@ -116,7 +116,9 @@ export class ScoreReaderComponent implements OnDestroy {
   }
 
   get canPlay(): boolean {
-    return this.parsedNotes.length > 0 && !this.isPlaying && !this.isConvertingPdf;
+    return (
+      this.parsedNotes.length > 0 && !this.isPlaying && !this.isConvertingPdf
+    );
   }
 
   get scoreSystems(): ScoreSystem[] {
@@ -132,6 +134,10 @@ export class ScoreReaderComponent implements OnDestroy {
     }
 
     return systems;
+  }
+
+  get selectedScoreDisplayName(): string {
+    return this.pdfName || this.musicXmlName || "partitura selecionada";
   }
 
   get currentPlayingNoteLabel(): string {
@@ -176,7 +182,7 @@ export class ScoreReaderComponent implements OnDestroy {
     }
 
     const stepByName: Record<string, number> = {
-      "dó": 0,
+      dó: 0,
       ré: 1,
       mi: 2,
       fá: 3,
@@ -265,15 +271,18 @@ export class ScoreReaderComponent implements OnDestroy {
   private async loadPdf(file: File): Promise<void> {
     this.revokePdfUrl();
     this.pdfName = file.name;
+    this.musicXmlName = "";
     this.objectUrl = URL.createObjectURL(file);
-    this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
-      this.objectUrl,
-    );
+    this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.objectUrl);
     this.statusMessage = "PDF carregado. Lendo a partitura...";
     await this.convertPdfToMusicXml(file);
   }
 
   private async loadMusicXml(file: File): Promise<void> {
+    this.revokePdfUrl();
+    this.pdfName = "";
+    this.pdfUrl = null;
+
     try {
       const xml = await file.text();
       const notes = this.parseMusicXml(xml);
@@ -347,7 +356,8 @@ export class ScoreReaderComponent implements OnDestroy {
 
   private isPdfFile(file: File): boolean {
     return (
-      file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf")
     );
   }
 
@@ -379,8 +389,9 @@ export class ScoreReaderComponent implements OnDestroy {
     let divisions = 1;
 
     for (const measure of Array.from(part.querySelectorAll("measure"))) {
-      const divisionsText = measure.querySelector("attributes > divisions")
-        ?.textContent;
+      const divisionsText = measure.querySelector(
+        "attributes > divisions",
+      )?.textContent;
       const nextDivisions = Number(divisionsText);
 
       if (Number.isFinite(nextDivisions) && nextDivisions > 0) {
@@ -431,7 +442,10 @@ export class ScoreReaderComponent implements OnDestroy {
     return notes;
   }
 
-  private readMusicXmlDuration(noteElement: Element, divisions: number): number {
+  private readMusicXmlDuration(
+    noteElement: Element,
+    divisions: number,
+  ): number {
     const durationText = noteElement.querySelector("duration")?.textContent;
     const duration = Number(durationText);
 
@@ -502,7 +516,7 @@ export class ScoreReaderComponent implements OnDestroy {
     }
 
     const stepByLabel: Record<string, string> = {
-      "dó": "C",
+      dó: "C",
       ré: "D",
       mi: "E",
       fá: "F",
@@ -524,7 +538,9 @@ export class ScoreReaderComponent implements OnDestroy {
     };
   }
 
-  async playScore(startIndex = this.currentNoteIndex >= 0 ? this.currentNoteIndex : 0): Promise<void> {
+  async playScore(
+    startIndex = this.currentNoteIndex >= 0 ? this.currentNoteIndex : 0,
+  ): Promise<void> {
     const notes = this.parsedNotes;
 
     if (notes.length === 0 || this.isPlaying) {
@@ -639,9 +655,8 @@ export class ScoreReaderComponent implements OnDestroy {
         return;
       }
 
-      const noteElement = this.scoreNoteSlots
-        ?.toArray()
-        [this.currentNoteIndex]?.nativeElement;
+      const noteElement =
+        this.scoreNoteSlots?.toArray()[this.currentNoteIndex]?.nativeElement;
 
       noteElement?.scrollIntoView({
         behavior: "smooth",
@@ -661,9 +676,10 @@ export class ScoreReaderComponent implements OnDestroy {
   }
 
   private parseToken(token: string): ParsedScoreNote | null {
-    const match = /^([a-gA-G]|do|dó|re|ré|mi|fa|fá|sol|la|lá|si|pausa|rest)(#|b)?([0-8])?(?:[:/](0\.25|0\.5|1|2|4))?$/i.exec(
-      token,
-    );
+    const match =
+      /^([a-gA-G]|do|dó|re|ré|mi|fa|fá|sol|la|lá|si|pausa|rest)(#|b)?([0-8])?(?:[:/](0\.25|0\.5|1|2|4))?$/i.exec(
+        token,
+      );
 
     if (!match) {
       return null;
@@ -714,20 +730,20 @@ export class ScoreReaderComponent implements OnDestroy {
     const labels: Record<string, string> = {
       c: "Dó",
       do: "Dó",
-      "dó": "Dó",
+      dó: "Dó",
       d: "Ré",
       re: "Ré",
-      "ré": "Ré",
+      ré: "Ré",
       e: "Mi",
       mi: "Mi",
       f: "Fá",
       fa: "Fá",
-      "fá": "Fá",
+      fá: "Fá",
       g: "Sol",
       sol: "Sol",
       a: "Lá",
       la: "Lá",
-      "lá": "Lá",
+      lá: "Lá",
       b: "Si",
       si: "Si",
     };
