@@ -6,6 +6,7 @@
     "ng": "ng",
     "start": "ng serve",
     "start:api": "npm --prefix backend run dev",
+    "start:api:docker": "docker compose up --build score-reader-api",
     "build": "ng build",
     "watch": "ng build --watch --configuration development"
   },

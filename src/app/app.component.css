@@ -263,6 +263,10 @@ input[type="text"]:focus {
   border-color: rgba(197, 116, 32, 0.4);
 }
 
+.level-score-reader {
+  border-color: rgba(0, 95, 115, 0.45);
+}
+
 .level-info {
   flex: 1;
 }

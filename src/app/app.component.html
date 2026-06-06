@@ -70,6 +70,14 @@
         <span class="arrow">›</span>
       </button>
 
+      <button class="level-card level-score-reader" (click)="openScoreReader()">
+        <div class="level-info">
+          <span class="level-title">Ler partitura</span>
+          <span class="level-sub">PDF com reprodução de notas</span>
+        </div>
+        <span class="arrow">›</span>
+      </button>
+
       <div class="report-actions">
         <button class="btn btn-secondary btn-full" (click)="openReport()">
           Ver relatório
@@ -404,6 +412,10 @@
   <app-rhythm-exercises
     (back)="returnToPreviousScreen()"
   ></app-rhythm-exercises>
+</div>
+
+<div class="screen" [class.active]="screen === 'score-reader'">
+  <app-score-reader (back)="returnToPreviousScreen()"></app-score-reader>
 </div>
 
 <div class="modal-overlay" *ngIf="modalVisible && resultState">

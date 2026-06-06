@@ -1,0 +1,9 @@
+services:
+  score-reader-api:
+    build:
+      context: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: "3001"
+      AUDIVERIS_CMD: /usr/local/bin/audiveris

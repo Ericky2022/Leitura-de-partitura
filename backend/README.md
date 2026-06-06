@@ -30,3 +30,26 @@ A API roda em `http://localhost:3001`.
   "percent": 80
 }
 ```
+## Conversao de PDF para MusicXML
+
+A rota `POST /api/score-reader/convert-pdf` usa o Audiveris para ler PDF de
+partitura e exportar MusicXML.
+
+Para rodar sem instalar Audiveris no Windows, use o container a partir da raiz
+do projeto:
+
+```bash
+npm run start:api:docker
+```
+
+Depois rode o app Angular normalmente:
+
+```bash
+npm start
+```
+
+O app vai enviar o PDF para `http://localhost:3001`, receber o MusicXML e tocar
+as notas reconhecidas.
+
+PDFs escaneados, inclinados, com baixa resolucao ou manuscritos podem precisar
+de correcao manual no MusicXML gerado.
