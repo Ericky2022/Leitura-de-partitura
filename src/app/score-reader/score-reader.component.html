@@ -16,15 +16,16 @@
         />
       </label>
       <p class="file-name" *ngIf="pdfName">{{ pdfName }}</p>
-      <p class="file-name" *ngIf="musicXmlName">
-        MusicXML: {{ musicXmlName }}
-      </p>
+      <p class="file-name" *ngIf="musicXmlName">MusicXML: {{ musicXmlName }}</p>
       <p class="status-info" *ngIf="isConvertingPdf">
         Lendo o PDF da partitura. Isso pode levar alguns minutos.
       </p>
 
       <div class="pdf-preview" *ngIf="pdfUrl">
-        <iframe [src]="pdfUrl" title="Pré-visualização da partitura em PDF"></iframe>
+        <iframe
+          [src]="pdfUrl"
+          title="Pré-visualização da partitura em PDF"
+        ></iframe>
       </div>
 
       <p class="empty-preview" *ngIf="!pdfUrl">
@@ -34,7 +35,7 @@
     </section>
 
     <section class="reader-card">
-      <h3>Notas reconhecidas</h3>
+      <h3>Partitura da execução</h3>
 
       <div class="score-player" *ngIf="scoreSystems.length > 0">
         <div class="player-main">
@@ -54,7 +55,9 @@
           </button>
           <div class="playing-now">
             <span>{{ currentNotePositionLabel }}</span>
-            <strong>{{ currentPlayingNoteLabel || "Pronto para tocar" }}</strong>
+            <strong>{{
+              currentPlayingNoteLabel || "Pronto para tocar"
+            }}</strong>
           </div>
         </div>
 
@@ -66,30 +69,48 @@
         </div>
       </div>
 
-      <div class="recognized-score" *ngIf="scoreSystems.length > 0">
-        <div class="score-system" *ngFor="let system of scoreSystems">
-          <div class="clef">𝄞</div>
-          <div class="staff-lines"></div>
-          <div class="score-notes">
-            <div
-              #scoreNoteSlot
-              class="score-note-slot"
-              *ngFor="let note of system.notes; let i = index"
-              [class.active]="isCurrentScoreNote(system, i)"
-              (click)="selectScoreNote(system.startIndex + i)"
-            >
-              <span
-                class="score-note"
-                [class.rest]="note.isRest"
-                [style.top.px]="getNoteTop(note)"
+      <div
+        class="execution-score-preview"
+        *ngIf="pdfUrl; else generatedScorePreview"
+      >
+        <p class="execution-score-note">
+          Esta é a mesma partitura selecionada: {{ selectedScoreDisplayName }}.
+        </p>
+        <iframe
+          [src]="pdfUrl"
+          title="Partitura selecionada para execução"
+        ></iframe>
+      </div>
+
+      <ng-template #generatedScorePreview>
+        <div class="recognized-score" *ngIf="scoreSystems.length > 0">
+          <p class="execution-score-note">
+            Visualização gerada a partir das notas lidas do MusicXML.
+          </p>
+          <div class="score-system" *ngFor="let system of scoreSystems">
+            <div class="clef">𝄞</div>
+            <div class="staff-lines"></div>
+            <div class="score-notes">
+              <div
+                #scoreNoteSlot
+                class="score-note-slot"
+                *ngFor="let note of system.notes; let i = index"
+                [class.active]="isCurrentScoreNote(system, i)"
+                (click)="selectScoreNote(system.startIndex + i)"
               >
-                {{ getNoteMark(note) }}
-              </span>
-              <span class="score-note-label">{{ note.label }}</span>
+                <span
+                  class="score-note"
+                  [class.rest]="note.isRest"
+                  [style.top.px]="getNoteTop(note)"
+                >
+                  {{ getNoteMark(note) }}
+                </span>
+                <span class="score-note-label">{{ note.label }}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </ng-template>
 
       <textarea
         [(ngModel)]="noteSequence"
@@ -121,15 +142,19 @@
       </div>
 
       <p class="empty-preview" *ngIf="parsedNotes.length === 0">
-        Use notas de Dó3 a Si5. Para mudar duração, escreva Dó4:2,
-        Ré4/0.5 ou Pausa:1.
+        Use notas de Dó3 a Si5. Para mudar duração, escreva Dó4:2, Ré4/0.5 ou
+        Pausa:1.
       </p>
 
       <div class="actions">
         <button class="action-btn" (click)="playScore()" [disabled]="!canPlay">
           Reproduzir
         </button>
-        <button class="action-btn stop" (click)="stopScore()" [disabled]="!isPlaying">
+        <button
+          class="action-btn stop"
+          (click)="stopScore()"
+          [disabled]="!isPlaying"
+        >
           Parar
         </button>
       </div>
