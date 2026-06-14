@@ -15,6 +15,7 @@ interface ParsedScoreNote {
   label: string;
   frequency: number | null;
   beats: number;
+  measureNumber?: number;
   isRest?: boolean;
 }
 
@@ -165,6 +166,36 @@ export class ScoreReaderComponent implements OnDestroy {
     return Math.min(100, ((this.currentNoteIndex + 1) / noteCount) * 100);
   }
 
+  get currentMeasureNumber(): number {
+    if (this.currentNoteIndex < 0) {
+      return 0;
+    }
+
+    return this.parsedNotes[this.currentNoteIndex]?.measureNumber ?? 0;
+  }
+
+  get measureCount(): number {
+    return Math.max(0, ...this.parsedNotes.map((note) => note.measureNumber ?? 0));
+  }
+
+  get currentMeasureLabel(): string {
+    if (this.currentMeasureNumber === 0) {
+      return this.measureCount > 0 ? `Compasso 1/${this.measureCount}` : "Compasso 0/0";
+    }
+
+    return `Compasso ${this.currentMeasureNumber}/${this.measureCount || this.currentMeasureNumber}`;
+  }
+
+  get currentMeasureProgressPercent(): number {
+    const measureCount = this.measureCount;
+
+    if (measureCount === 0 || this.currentMeasureNumber === 0) {
+      return 0;
+    }
+
+    return Math.min(100, ((this.currentMeasureNumber - 1) / measureCount) * 100);
+  }
+
   get currentNotePositionLabel(): string {
     const noteCount = this.parsedNotes.length;
 
@@ -222,6 +253,15 @@ export class ScoreReaderComponent implements OnDestroy {
 
   isCurrentScoreNote(system: ScoreSystem, noteIndex: number): boolean {
     return this.currentNoteIndex === system.startIndex + noteIndex;
+  }
+
+  isCurrentMeasureNote(system: ScoreSystem, noteIndex: number): boolean {
+    const note = system.notes[noteIndex];
+
+    return (
+      this.currentMeasureNumber > 0 &&
+      note?.measureNumber === this.currentMeasureNumber
+    );
   }
 
   selectScoreNote(index: number): void {
@@ -374,7 +414,12 @@ export class ScoreReaderComponent implements OnDestroy {
 
   private formatNotesForSequence(notes: ParsedScoreNote[]): string {
     return notes
-      .map((note) => `${note.label}${note.beats === 1 ? "" : `:${note.beats}`}`)
+      .map((note) => {
+        const duration = note.beats === 1 ? "" : `:${note.beats}`;
+        const measure = note.measureNumber ? `@${note.measureNumber}` : "";
+
+        return `${note.label}${duration}${measure}`;
+      })
       .join(" ");
   }
 
@@ -430,7 +475,10 @@ export class ScoreReaderComponent implements OnDestroy {
     const notes: ParsedScoreNote[] = [];
     let divisions = 1;
 
-    for (const measure of Array.from(part.querySelectorAll("measure"))) {
+    for (const [measureIndex, measure] of Array.from(
+      part.querySelectorAll("measure"),
+    ).entries()) {
+      const measureNumber = Number(measure.getAttribute("number")) || measureIndex + 1;
       const divisionsText = measure.querySelector(
         "attributes > divisions",
       )?.textContent;
@@ -454,6 +502,7 @@ export class ScoreReaderComponent implements OnDestroy {
             label: "Pausa",
             frequency: null,
             beats: duration,
+            measureNumber,
             isRest: true,
           });
           continue;
@@ -478,6 +527,7 @@ export class ScoreReaderComponent implements OnDestroy {
           label: this.formatMusicXmlLabel(step, alter, octaveNumber),
           frequency: this.frequencyFromPitch(step, alter, octaveNumber),
           beats: duration,
+          measureNumber,
         });
 
         this.mergeTiedNoteDuration(notes, noteElement);
@@ -752,17 +802,39 @@ export class ScoreReaderComponent implements OnDestroy {
   }
 
   private parseSequence(): ParsedScoreNote[] {
+    let inferredMeasure = 1;
+    let beatsInMeasure = 0;
+
     return this.noteSequence
       .split(/[\s,;|]+/)
       .map((token) => token.trim())
       .filter(Boolean)
       .map((token) => this.parseToken(token))
-      .filter((note): note is ParsedScoreNote => note !== null);
+      .filter((note): note is ParsedScoreNote => note !== null)
+      .map((note) => {
+        const noteWithMeasure = {
+          ...note,
+          measureNumber: note.measureNumber ?? inferredMeasure,
+        };
+
+        if (note.measureNumber && note.measureNumber !== inferredMeasure) {
+          inferredMeasure = note.measureNumber;
+          beatsInMeasure = 0;
+        }
+
+        beatsInMeasure += note.beats;
+        if (beatsInMeasure >= 4) {
+          inferredMeasure += Math.floor(beatsInMeasure / 4);
+          beatsInMeasure %= 4;
+        }
+
+        return noteWithMeasure;
+      });
   }
 
   private parseToken(token: string): ParsedScoreNote | null {
     const match =
-      /^([a-gA-G]|do|dó|re|ré|mi|fa|fá|sol|la|lá|si|pausa|rest)(#|b)?([0-8])?(?:[:/](0\.25|0\.5|1|2|4))?$/i.exec(
+      /^([a-gA-G]|do|dó|re|ré|mi|fa|fá|sol|la|lá|si|pausa|rest)(#|b)?([0-8])?(?:[:/](0\.25|0\.5|1|2|4))?(?:@(\d+))?$/i.exec(
         token,
       );
 
@@ -774,12 +846,18 @@ export class ScoreReaderComponent implements OnDestroy {
     const accidental = match[2] ?? "";
     const octave = match[3] ?? "4";
     const beats = Number(match[4] ?? 1);
+    const explicitMeasure = Number(match[5]);
+    const measureNumber =
+      Number.isFinite(explicitMeasure) && explicitMeasure > 0
+        ? explicitMeasure
+        : undefined;
 
     if (noteName === "pausa" || noteName === "rest") {
       return {
         label: "Pausa",
         frequency: null,
         beats,
+        measureNumber,
         isRest: true,
       };
     }
@@ -793,6 +871,7 @@ export class ScoreReaderComponent implements OnDestroy {
         ? {
             ...parsedMusicXmlLabel,
             beats,
+            measureNumber,
           }
         : null;
     }
@@ -808,6 +887,7 @@ export class ScoreReaderComponent implements OnDestroy {
       label: `${this.formatNoteName(noteName)}${octave}`,
       frequency,
       beats,
+      measureNumber,
     };
   }
 

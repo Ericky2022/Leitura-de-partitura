@@ -72,7 +72,7 @@
         </div>
 
         <div class="playing-now">
-          <span>{{ currentNotePositionLabel }}</span>
+          <span>{{ currentNotePositionLabel }} • {{ currentMeasureLabel }}</span>
           <strong>{{ currentPlayingNoteLabel || "Pronto para tocar" }}</strong>
         </div>
       </div>
@@ -98,6 +98,9 @@
 
             <ng-container *ngIf="pdfUrl; else recognizedScore">
               <div class="pdf-score-reference">
+                <div class="pdf-measure-highlight" [style.left.%]="currentMeasureProgressPercent" aria-hidden="true">
+                  <span>{{ currentMeasureLabel }}</span>
+                </div>
                 <div class="pdf-playhead" [style.left.%]="playbackProgressPercent" aria-hidden="true">
                   <span></span>
                 </div>
@@ -124,6 +127,7 @@
                       class="score-note-slot"
                       *ngFor="let note of system.notes; let i = index"
                       [class.active]="isCurrentScoreNote(system, i)"
+                      [class.current-measure]="isCurrentMeasureNote(system, i)"
                       (click)="selectScoreNote(system.startIndex + i)"
                     >
                       <span
