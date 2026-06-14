@@ -87,30 +87,45 @@
               <p>Execução interativa</p>
             </div>
 
-            <div class="recognized-score">
-              <div class="score-system" *ngFor="let system of scoreSystems">
-                <div class="clef">𝄞</div>
-                <div class="staff-lines"></div>
-                <div class="score-notes">
-                  <div
-                    #scoreNoteSlot
-                    class="score-note-slot"
-                    *ngFor="let note of system.notes; let i = index"
-                    [class.active]="isCurrentScoreNote(system, i)"
-                    (click)="selectScoreNote(system.startIndex + i)"
-                  >
-                    <span
-                      class="score-note"
-                      [class.rest]="note.isRest"
-                      [style.top.px]="getNoteTop(note)"
+            <ng-container *ngIf="pdfUrl; else recognizedScore">
+              <div class="pdf-score-reference">
+                <iframe
+                  [src]="pdfUrl"
+                  title="Partitura PDF original carregada"
+                ></iframe>
+              </div>
+              <p class="pdf-reference-note">
+                Mostrando o PDF original para preservar a aparência da partitura.
+                A reprodução usa as notas reconhecidas automaticamente para o acompanhamento.
+              </p>
+            </ng-container>
+
+            <ng-template #recognizedScore>
+              <div class="recognized-score">
+                <div class="score-system" *ngFor="let system of scoreSystems">
+                  <div class="clef">𝄞</div>
+                  <div class="staff-lines"></div>
+                  <div class="score-notes">
+                    <div
+                      #scoreNoteSlot
+                      class="score-note-slot"
+                      *ngFor="let note of system.notes; let i = index"
+                      [class.active]="isCurrentScoreNote(system, i)"
+                      (click)="selectScoreNote(system.startIndex + i)"
                     >
-                      {{ getNoteMark(note) }}
-                    </span>
-                    <span class="score-note-label">{{ note.label }}</span>
+                      <span
+                        class="score-note"
+                        [class.rest]="note.isRest"
+                        [style.top.px]="getNoteTop(note)"
+                      >
+                        {{ getNoteMark(note) }}
+                      </span>
+                      <span class="score-note-label">{{ note.label }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </ng-template>
           </div>
         </main>
       </div>
