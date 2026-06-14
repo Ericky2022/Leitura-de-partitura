@@ -551,3 +551,53 @@ h2 {
 }
 
 .viewer-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;color:#243142;font-size:.86rem;font-weight:900}.viewer-actions .toolbar-button{min-height:34px;padding:0 10px}.presentation-toggle{background:#16202c;color:#fff}.pdf-score-reference{position:relative}.pdf-score-reference iframe{transform-origin:top center;transition:transform .18s ease}.pdf-playhead{position:absolute;top:0;bottom:0;z-index:2;width:3px;border-radius:999px;background:rgba(34,197,94,.82);box-shadow:0 0 22px rgba(13,95,115,.35);pointer-events:none;transition:left .2s linear}.pdf-playhead span{position:absolute;top:16px;left:50%;width:18px;height:18px;border-radius:50%;background:#22c55e;border:3px solid #fff;transform:translateX(-50%)}.presentation-mode{border-radius:0;box-shadow:none}.presentation-mode .score-hero,.presentation-mode .file-summary,.presentation-mode .score-sidebar,.presentation-mode .page-title,.presentation-mode .pdf-reference-note,.presentation-mode .advanced-editor{display:none}.presentation-mode .score-stage{grid-template-columns:1fr;min-height:calc(100vh - 110px);background:#111827}.presentation-mode .score-page-wrap{padding:12px;background:#111827}.presentation-mode .score-page{width:min(100%,1120px);min-height:calc(100vh - 150px);padding:14px;background:#f8fafc}.presentation-mode .pdf-score-reference{height:calc(100vh - 170px);min-height:520px;border:0}
+
+.score-note-slot.current-measure {
+  background: rgba(13, 95, 115, 0.08);
+  box-shadow: inset 0 -4px 0 rgba(13, 95, 115, 0.28);
+}
+
+.score-note-slot.current-measure::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 8px;
+  left: -2px;
+  right: -2px;
+  border-block: 2px solid rgba(13, 95, 115, 0.32);
+  pointer-events: none;
+}
+
+.score-note-slot.current-measure:first-child::after,
+.score-note-slot.current-measure + .score-note-slot:not(.current-measure)::after {
+  border-inline-start: 2px solid rgba(13, 95, 115, 0.32);
+}
+
+.pdf-measure-highlight {
+  position: absolute;
+  top: 12%;
+  bottom: 10%;
+  z-index: 1;
+  width: clamp(70px, 12%, 150px);
+  border: 2px solid rgba(34, 197, 94, 0.78);
+  border-radius: 14px;
+  background: rgba(34, 197, 94, 0.16);
+  box-shadow: 0 0 28px rgba(34, 197, 94, 0.24);
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: left 0.2s linear;
+}
+
+.pdf-measure-highlight span {
+  position: absolute;
+  top: -36px;
+  left: 50%;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: #0d5f73;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  transform: translateX(-50%);
+}
