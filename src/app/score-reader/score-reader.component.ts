@@ -45,6 +45,9 @@ export class ScoreReaderComponent implements OnDestroy {
   isPlaying = false;
   currentNoteIndex = -1;
   statusMessage = "";
+  isPresentationMode = false;
+  pdfZoom = 100;
+
 
   private objectUrl = "";
   private audioContext?: AudioContext;
@@ -148,6 +151,10 @@ export class ScoreReaderComponent implements OnDestroy {
     return this.parsedNotes[this.currentNoteIndex]?.label ?? "";
   }
 
+  get pdfViewerTransform(): string {
+    return `scale(${this.pdfZoom / 100})`;
+  }
+
   get playbackProgressPercent(): number {
     const noteCount = this.parsedNotes.length;
 
@@ -240,6 +247,17 @@ export class ScoreReaderComponent implements OnDestroy {
     }
   }
 
+  togglePresentationMode(): void {
+    this.isPresentationMode = !this.isPresentationMode;
+    this.statusMessage = this.isPresentationMode
+      ? "Modo apresentação ativado para tocar acompanhando a partitura."
+      : "Modo apresentação encerrado.";
+  }
+
+  changePdfZoom(delta: number): void {
+    this.pdfZoom = Math.max(70, Math.min(150, this.pdfZoom + delta));
+  }
+
   restartScore(): void {
     this.stopScore();
     this.currentNoteIndex = -1;
@@ -270,6 +288,7 @@ export class ScoreReaderComponent implements OnDestroy {
 
   private async loadPdf(file: File): Promise<void> {
     this.revokePdfUrl();
+    this.isPresentationMode = true;
     this.pdfName = file.name;
     this.musicXmlName = "";
     this.objectUrl = URL.createObjectURL(file);
@@ -282,6 +301,7 @@ export class ScoreReaderComponent implements OnDestroy {
     this.revokePdfUrl();
     this.pdfName = "";
     this.pdfUrl = null;
+    this.isPresentationMode = true;
 
     try {
       const xml = await file.text();
@@ -658,7 +678,16 @@ export class ScoreReaderComponent implements OnDestroy {
       const noteElement =
         this.scoreNoteSlots?.toArray()[this.currentNoteIndex]?.nativeElement;
 
-      noteElement?.scrollIntoView({
+      if (noteElement) {
+        noteElement.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+      }
+
+      const pdfMarker = document.querySelector<HTMLElement>(".pdf-playhead");
+      pdfMarker?.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
         inline: "center",

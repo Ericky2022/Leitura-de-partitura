@@ -3,7 +3,7 @@
   <div class="container">
     <button class="btn-back" (click)="goBack()">← Voltar</button>
 
-    <section class="musescore-shell">
+    <section class="musescore-shell" [class.presentation-mode]="isPresentationMode">
       <header class="score-hero">
         <div>
           <p class="eyebrow">Leitor de partitura</p>
@@ -62,6 +62,15 @@
           <strong>{{ tempo }} bpm</strong>
         </div>
 
+        <div class="viewer-actions">
+          <button class="toolbar-button" type="button" (click)="changePdfZoom(-10)" [disabled]="!pdfUrl">− Zoom</button>
+          <strong>{{ pdfZoom }}%</strong>
+          <button class="toolbar-button" type="button" (click)="changePdfZoom(10)" [disabled]="!pdfUrl">+ Zoom</button>
+          <button class="toolbar-button presentation-toggle" type="button" (click)="togglePresentationMode()">
+            {{ isPresentationMode ? "Sair da apresentação" : "Apresentar" }}
+          </button>
+        </div>
+
         <div class="playing-now">
           <span>{{ currentNotePositionLabel }}</span>
           <strong>{{ currentPlayingNoteLabel || "Pronto para tocar" }}</strong>
@@ -89,14 +98,18 @@
 
             <ng-container *ngIf="pdfUrl; else recognizedScore">
               <div class="pdf-score-reference">
+                <div class="pdf-playhead" [style.left.%]="playbackProgressPercent" aria-hidden="true">
+                  <span></span>
+                </div>
                 <iframe
                   [src]="pdfUrl"
                   title="Partitura PDF original carregada"
+                  [style.transform]="pdfViewerTransform"
                 ></iframe>
               </div>
               <p class="pdf-reference-note">
                 Mostrando o PDF original para preservar a aparência da partitura.
-                A reprodução usa as notas reconhecidas automaticamente para o acompanhamento.
+                Use “Apresentar”, zoom e reproduzir para tocar acompanhando como em um visualizador de partitura.
               </p>
             </ng-container>
 
