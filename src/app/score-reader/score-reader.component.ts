@@ -17,6 +17,13 @@ interface ParsedScoreNote {
   beats: number;
   measureNumber?: number;
   isRest?: boolean;
+  cursorStep?: number;
+}
+
+interface ParsedScoreMeasure {
+  notes: ParsedScoreNote[];
+  hasForwardRepeat: boolean;
+  hasBackwardRepeat: boolean;
 }
 
 @Component({
@@ -50,6 +57,7 @@ export class ScoreReaderComponent implements OnDestroy {
   private playRunId = 0;
   private osmd?: OpenSheetMusicDisplay;
   private currentMusicXml = "";
+  private playbackNotes: ParsedScoreNote[] = [];
 
   private readonly noteFrequencyByName: Record<string, number> = {
     c3: 130.81, do3: 130.81, dó3: 130.81, d3: 146.83, re3: 146.83, ré3: 146.83,
@@ -66,7 +74,7 @@ export class ScoreReaderComponent implements OnDestroy {
   constructor(private readonly sanitizer: DomSanitizer) {}
 
   get parsedNotes(): ParsedScoreNote[] {
-    return this.parseSequence();
+    return this.playbackNotes.length > 0 ? this.playbackNotes : this.parseSequence();
   }
 
   get canPlay(): boolean {
@@ -197,6 +205,7 @@ export class ScoreReaderComponent implements OnDestroy {
     this.objectUrl = URL.createObjectURL(file);
     this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.objectUrl);
     this.noteSequence = "";
+    this.playbackNotes = [];
     this.currentNoteIndex = -1;
     this.statusMessage = "PDF carregado. Convertendo para partitura interativa...";
     await this.convertPdfToMusicXml(file);
@@ -207,6 +216,7 @@ export class ScoreReaderComponent implements OnDestroy {
     this.pdfName = "";
     this.pdfUrl = null;
     this.noteSequence = "";
+    this.playbackNotes = [];
     this.currentNoteIndex = -1;
     this.isPresentationMode = true;
 
@@ -218,9 +228,10 @@ export class ScoreReaderComponent implements OnDestroy {
         return;
       }
       this.musicXmlName = file.name;
+      this.playbackNotes = notes;
       this.noteSequence = this.formatNotesForSequence(notes);
       await this.renderMusicXml(xml);
-      this.statusMessage = `MusicXML carregado com ${notes.length} eventos musicais.`;
+      this.statusMessage = `MusicXML carregado com ${notes.length} eventos musicais. Retornelos serão tocados uma vez.`;
     } catch {
       this.statusMessage = "Não foi possível ler o MusicXML. Tente exportar novamente como .musicxml ou .xml.";
     }
@@ -249,9 +260,10 @@ export class ScoreReaderComponent implements OnDestroy {
       }
 
       this.musicXmlName = data.fileName ?? "convertido-do-pdf.xml";
+      this.playbackNotes = notes;
       this.noteSequence = this.formatNotesForSequence(notes);
       await this.renderMusicXml(data.musicXml);
-      this.statusMessage = `PDF convertido e renderizado com ${notes.length} eventos musicais reconhecidos.`;
+      this.statusMessage = `PDF convertido com ${notes.length} eventos musicais. Retornelos serão tocados uma vez.`;
     } catch {
       this.statusMessage = "PDF carregado, mas a leitura automática precisa da API local com Audiveris em execução.";
     } finally {
@@ -286,6 +298,7 @@ export class ScoreReaderComponent implements OnDestroy {
   private clearRenderedScore(): void {
     this.currentMusicXml = "";
     this.hasRenderedScore = false;
+    this.playbackNotes = [];
     this.osmd = undefined;
     if (this.osmdContainer?.nativeElement) {
       this.osmdContainer.nativeElement.innerHTML = "";
@@ -336,8 +349,9 @@ export class ScoreReaderComponent implements OnDestroy {
   }
 
   private parseMusicXmlPart(part: Element): ParsedScoreNote[] {
-    const notes: ParsedScoreNote[] = [];
+    const parsedMeasures: ParsedScoreMeasure[] = [];
     let divisions = 1;
+    let cursorStep = 0;
 
     for (const [measureIndex, measure] of Array.from(part.querySelectorAll("measure")).entries()) {
       const measureNumber = Number(measure.getAttribute("number")) || measureIndex + 1;
@@ -345,13 +359,16 @@ export class ScoreReaderComponent implements OnDestroy {
       const nextDivisions = Number(divisionsText);
       if (Number.isFinite(nextDivisions) && nextDivisions > 0) divisions = nextDivisions;
 
+      const measureNotes: ParsedScoreNote[] = [];
+
       for (const noteElement of Array.from(measure.querySelectorAll("note"))) {
         const duration = this.readMusicXmlDuration(noteElement, divisions);
         if (this.shouldSkipMusicXmlNote(noteElement)) continue;
 
         const isRest = Boolean(noteElement.querySelector("rest"));
         if (isRest) {
-          notes.push({ label: "Pausa", frequency: null, beats: duration, measureNumber, isRest: true });
+          measureNotes.push({ label: "Pausa", frequency: null, beats: duration, measureNumber, isRest: true, cursorStep });
+          cursorStep++;
           continue;
         }
 
@@ -363,17 +380,59 @@ export class ScoreReaderComponent implements OnDestroy {
         const octaveNumber = Number(octave);
         if (!Number.isFinite(octaveNumber)) continue;
 
-        notes.push({
+        measureNotes.push({
           label: this.formatMusicXmlLabel(step, alter, octaveNumber),
           frequency: this.frequencyFromPitch(step, alter, octaveNumber),
           beats: duration,
           measureNumber,
+          cursorStep,
         });
-        this.mergeTiedNoteDuration(notes, noteElement);
+        this.mergeTiedNoteDuration(measureNotes, noteElement);
+        cursorStep++;
+      }
+
+      parsedMeasures.push({
+        notes: measureNotes,
+        hasForwardRepeat: this.hasRepeatDirection(measure, "forward"),
+        hasBackwardRepeat: this.hasRepeatDirection(measure, "backward"),
+      });
+    }
+
+    return this.expandRepeatsOnce(parsedMeasures);
+  }
+
+  private expandRepeatsOnce(measures: ParsedScoreMeasure[]): ParsedScoreNote[] {
+    const expandedNotes: ParsedScoreNote[] = [];
+    let repeatStartMeasureIndex = 0;
+
+    for (let measureIndex = 0; measureIndex < measures.length; measureIndex++) {
+      const measure = measures[measureIndex];
+
+      if (measure.hasForwardRepeat) {
+        repeatStartMeasureIndex = measureIndex;
+      }
+
+      expandedNotes.push(...this.cloneNotes(measure.notes));
+
+      if (measure.hasBackwardRepeat) {
+        for (let repeatIndex = repeatStartMeasureIndex; repeatIndex <= measureIndex; repeatIndex++) {
+          expandedNotes.push(...this.cloneNotes(measures[repeatIndex].notes));
+        }
+        repeatStartMeasureIndex = measureIndex + 1;
       }
     }
 
-    return notes;
+    return expandedNotes;
+  }
+
+  private cloneNotes(notes: ParsedScoreNote[]): ParsedScoreNote[] {
+    return notes.map((note) => ({ ...note }));
+  }
+
+  private hasRepeatDirection(measure: Element, direction: "forward" | "backward"): boolean {
+    return Array.from(measure.querySelectorAll("barline repeat")).some(
+      (repeat) => repeat.getAttribute("direction") === direction,
+    );
   }
 
   private shouldSkipMusicXmlNote(noteElement: Element): boolean {
@@ -479,7 +538,7 @@ export class ScoreReaderComponent implements OnDestroy {
     const durationMs = Math.max(80, beatDurationMs * note.beats);
 
     this.currentNoteIndex = index;
-    this.moveOsmdCursorTo(index);
+    this.moveOsmdCursorTo(note.cursorStep ?? index);
     this.stopActiveNote();
 
     if (note.frequency !== null) this.playFrequency(note.frequency, durationMs / 1000);
@@ -522,14 +581,14 @@ export class ScoreReaderComponent implements OnDestroy {
     this.activeOscillator = undefined;
   }
 
-  private moveOsmdCursorTo(index: number): void {
+  private moveOsmdCursorTo(cursorStep: number): void {
     const cursor = this.getOsmdCursor();
     if (!cursor) return;
 
     try {
       cursor.reset();
       cursor.show();
-      for (let step = 0; step < index; step++) {
+      for (let step = 0; step < cursorStep; step++) {
         cursor.next();
       }
     } catch {
