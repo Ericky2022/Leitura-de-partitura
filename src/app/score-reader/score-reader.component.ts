@@ -559,7 +559,7 @@ export class ScoreReaderComponent implements OnDestroy {
     this.stopActiveNote();
 
     if (note.frequency !== null) this.playFrequency(note.frequency, durationMs / 1000);
-    this.scrollPlayheadIntoView();
+    this.keepCurrentNoteVisible();
 
     this.playTimeout = setTimeout(() => {
       void this.playNoteAtIndex(notes, index + 1, runId);
@@ -629,11 +629,31 @@ export class ScoreReaderComponent implements OnDestroy {
     return ((this.osmd as unknown as { cursor?: { reset: () => void; show: () => void; next: () => void } })?.cursor) ?? null;
   }
 
-  private scrollPlayheadIntoView(): void {
+  private keepCurrentNoteVisible(): void {
     setTimeout(() => {
-      const osmdCursor = this.osmdContainer?.nativeElement.querySelector<HTMLElement>(".OSMDCursor");
-      const marker = osmdCursor ?? document.querySelector<HTMLElement>(".osmd-playhead");
-      marker?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      const marker = this.osmdContainer?.nativeElement.querySelector<HTMLElement>(".OSMDCursor");
+      const scrollArea = this.osmdContainer?.nativeElement.closest<HTMLElement>(".score-page-wrap");
+
+      if (!marker || !scrollArea) return;
+
+      const markerRect = marker.getBoundingClientRect();
+      const areaRect = scrollArea.getBoundingClientRect();
+      const safeTop = areaRect.top + 42;
+      const safeBottom = areaRect.bottom - 72;
+      const safeLeft = areaRect.left + 24;
+      const safeRight = areaRect.right - 24;
+
+      if (markerRect.top < safeTop) {
+        scrollArea.scrollBy({ top: markerRect.top - safeTop, behavior: "smooth" });
+      } else if (markerRect.bottom > safeBottom) {
+        scrollArea.scrollBy({ top: markerRect.bottom - safeBottom, behavior: "smooth" });
+      }
+
+      if (markerRect.left < safeLeft) {
+        scrollArea.scrollBy({ left: markerRect.left - safeLeft, behavior: "smooth" });
+      } else if (markerRect.right > safeRight) {
+        scrollArea.scrollBy({ left: markerRect.right - safeRight, behavior: "smooth" });
+      }
     }, 0);
   }
 
