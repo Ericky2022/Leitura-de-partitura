@@ -9,8 +9,8 @@
           <p class="eyebrow">Leitor de partitura</p>
           <h2>{{ selectedScoreDisplayName }}</h2>
           <p class="subtitle">
-            Selecione PDF ou MusicXML para visualizar como uma página de partitura,
-            reproduzir e acompanhar a nota atual em destaque.
+            Envie um PDF de partitura. O app converte para MusicXML, mostra a
+            partitura real como em um leitor online e toca as notas reconhecidas.
           </p>
         </div>
 
@@ -31,7 +31,7 @@
         <span *ngIf="statusMessage">{{ statusMessage }}</span>
       </div>
 
-      <div class="musescore-toolbar" *ngIf="scoreSystems.length > 0">
+      <div class="musescore-toolbar" *ngIf="hasRenderedScore || parsedNotes.length > 0">
         <button
           class="round-play"
           (click)="isPlaying ? stopScore() : playScore()"
@@ -63,9 +63,9 @@
         </div>
 
         <div class="viewer-actions">
-          <button class="toolbar-button" type="button" (click)="changePdfZoom(-10)" [disabled]="!pdfUrl">− Zoom</button>
+          <button class="toolbar-button" type="button" (click)="changePdfZoom(-10)" [disabled]="!hasRenderedScore && !pdfUrl">− Zoom</button>
           <strong>{{ pdfZoom }}%</strong>
-          <button class="toolbar-button" type="button" (click)="changePdfZoom(10)" [disabled]="!pdfUrl">+ Zoom</button>
+          <button class="toolbar-button" type="button" (click)="changePdfZoom(10)" [disabled]="!hasRenderedScore && !pdfUrl">+ Zoom</button>
           <button class="toolbar-button presentation-toggle" type="button" (click)="togglePresentationMode()">
             {{ isPresentationMode ? "Sair da apresentação" : "Apresentar" }}
           </button>
@@ -77,11 +77,11 @@
         </div>
       </div>
 
-      <div class="progress-track" *ngIf="scoreSystems.length > 0" aria-hidden="true">
+      <div class="progress-track" *ngIf="hasRenderedScore || parsedNotes.length > 0" aria-hidden="true">
         <div class="progress-fill" [style.width.%]="playbackProgressPercent"></div>
       </div>
 
-      <div class="score-stage" *ngIf="scoreSystems.length > 0; else emptyState">
+      <div class="score-stage" *ngIf="hasRenderedScore || parsedNotes.length > 0 || pdfUrl; else emptyState">
         <aside class="score-sidebar">
           <div class="mini-page active">
             <span>1</span>
@@ -93,17 +93,22 @@
           <div class="score-page">
             <div class="page-title">
               <h3>{{ selectedScoreDisplayName }}</h3>
-              <p>Execução interativa</p>
+              <p>{{ hasRenderedScore ? "Partitura renderizada" : "Pré-visualização do PDF" }}</p>
             </div>
 
-            <ng-container *ngIf="pdfUrl; else recognizedScore">
+            <div class="osmd-score-reference" *ngIf="hasRenderedScore">
+              <div class="osmd-playhead" [style.left.%]="playbackProgressPercent" aria-hidden="true">
+                <span></span>
+              </div>
+              <div
+                #osmdContainer
+                class="osmd-container"
+                [style.transform]="pdfViewerTransform"
+              ></div>
+            </div>
+
+            <ng-container *ngIf="!hasRenderedScore && pdfUrl">
               <div class="pdf-score-reference">
-                <div class="pdf-measure-highlight" [style.left.%]="currentMeasureProgressPercent" aria-hidden="true">
-                  <span>{{ currentMeasureLabel }}</span>
-                </div>
-                <div class="pdf-playhead" [style.left.%]="playbackProgressPercent" aria-hidden="true">
-                  <span></span>
-                </div>
                 <iframe
                   [src]="pdfUrl"
                   title="Partitura PDF original carregada"
@@ -111,38 +116,10 @@
                 ></iframe>
               </div>
               <p class="pdf-reference-note">
-                Mostrando o PDF original para preservar a aparência da partitura.
-                Use “Apresentar”, zoom e reproduzir para tocar acompanhando como em um visualizador de partitura.
+                O PDF foi carregado. Quando a conversão para MusicXML terminar, a
+                partitura aparecerá aqui renderizada em formato musical.
               </p>
             </ng-container>
-
-            <ng-template #recognizedScore>
-              <div class="recognized-score">
-                <div class="score-system" *ngFor="let system of scoreSystems">
-                  <div class="clef">𝄞</div>
-                  <div class="staff-lines"></div>
-                  <div class="score-notes">
-                    <div
-                      #scoreNoteSlot
-                      class="score-note-slot"
-                      *ngFor="let note of system.notes; let i = index"
-                      [class.active]="isCurrentScoreNote(system, i)"
-                      [class.current-measure]="isCurrentMeasureNote(system, i)"
-                      (click)="selectScoreNote(system.startIndex + i)"
-                    >
-                      <span
-                        class="score-note"
-                        [class.rest]="note.isRest"
-                        [style.top.px]="getNoteTop(note)"
-                      >
-                        {{ getNoteMark(note) }}
-                      </span>
-                      <span class="score-note-label">{{ note.label }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ng-template>
           </div>
         </main>
       </div>
@@ -152,12 +129,8 @@
           <div class="empty-page-icon">𝄞</div>
           <h3>Nenhuma partitura carregada</h3>
           <p>
-            O PDF selecionado aparece como referência e, quando houver MusicXML
-            ou conversão disponível, a execução interativa mostrará as notas em destaque.
+            Envie um PDF de partitura ou um arquivo MusicXML para visualizar e tocar.
           </p>
-          <div class="pdf-preview" *ngIf="pdfUrl">
-            <iframe [src]="pdfUrl" title="Pré-visualização da partitura em PDF"></iframe>
-          </div>
         </div>
       </ng-template>
 
@@ -166,7 +139,7 @@
         <textarea
           [(ngModel)]="noteSequence"
           rows="5"
-          placeholder="Exemplo: Dó4 Ré4 Mi4 Fá4 Sol4 ou C4 D4 E4 F4 G4"
+          placeholder="Exemplo: Dó4 Ré4 Mi4 Fá4 Sol4 ou C4 D4 E4 G4"
         ></textarea>
         <p class="hint">
           Use notas de Dó3 a Si5. Para mudar duração, escreva Dó4:2, Ré4/0.5 ou Pausa:1.
