@@ -154,7 +154,7 @@ export class ScoreReaderComponent implements OnDestroy {
   }
 
   changePdfZoom(delta: number): void {
-    this.pdfZoom = Math.max(70, Math.min(150, this.pdfZoom + delta));
+    this.pdfZoom = Math.max(45, Math.min(150, this.pdfZoom + delta));
   }
 
   restartScore(): void {
@@ -274,6 +274,7 @@ export class ScoreReaderComponent implements OnDestroy {
   private async renderMusicXml(xml: string): Promise<void> {
     this.currentMusicXml = xml;
     this.hasRenderedScore = true;
+    this.applyResponsiveScoreZoom();
     await new Promise((resolve) => setTimeout(resolve));
 
     const container = this.osmdContainer?.nativeElement;
@@ -283,6 +284,7 @@ export class ScoreReaderComponent implements OnDestroy {
     }
 
     container.innerHTML = "";
+    container.style.transformOrigin = "top left";
     this.osmd = new OpenSheetMusicDisplay(container, {
       autoResize: true,
       drawTitle: true,
@@ -293,6 +295,21 @@ export class ScoreReaderComponent implements OnDestroy {
     await this.osmd.load(this.currentMusicXml);
     this.osmd.render();
     this.resetOsmdCursor();
+  }
+
+  private applyResponsiveScoreZoom(): void {
+    const width = window.innerWidth;
+    if (width <= 430) {
+      this.pdfZoom = 55;
+      return;
+    }
+
+    if (width <= 760) {
+      this.pdfZoom = 65;
+      return;
+    }
+
+    this.pdfZoom = 100;
   }
 
   private clearRenderedScore(): void {
