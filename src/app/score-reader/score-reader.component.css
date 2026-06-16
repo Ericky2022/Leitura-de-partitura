@@ -75,6 +75,7 @@ h2 {
 
 .file-picker,
 .toolbar-button,
+.toolbar-upload,
 .round-play {
   border: 0;
   font-weight: 900;
@@ -82,21 +83,33 @@ h2 {
   transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
-.file-picker {
+.file-picker,
+.toolbar-upload {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
   white-space: nowrap;
-  padding: 0 18px;
   border-radius: 999px;
+}
+
+.file-picker {
+  min-height: 46px;
+  padding: 0 18px;
   background: #22c55e;
   color: #062010;
   box-shadow: 0 12px 26px rgba(34, 197, 94, 0.28);
 }
 
-.file-picker input {
+.toolbar-upload {
+  min-height: 40px;
+  padding: 0 14px;
+  background: #dff3f7;
+  color: #0d5f73;
+}
+
+.file-picker input,
+.toolbar-upload input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -127,10 +140,10 @@ h2 {
   top: 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: auto auto minmax(180px, 1fr) auto auto;
-  gap: 14px;
+  grid-template-columns: auto auto auto minmax(180px, 1fr) auto auto;
+  gap: 12px;
   align-items: center;
-  padding: 12px 24px;
+  padding: 12px 18px;
   border-bottom: 1px solid #d8dee6;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(14px);
@@ -238,20 +251,20 @@ h2 {
 
 .score-page-wrap {
   overflow: auto;
-  padding: 34px 24px 46px;
+  padding: 28px 18px 40px;
 }
 
 .score-page {
-  width: min(100%, 900px);
-  min-height: 940px;
+  width: min(100%, 980px);
+  min-height: 760px;
   margin: 0 auto;
-  padding: clamp(28px, 5vw, 62px);
+  padding: clamp(18px, 3vw, 40px);
   background: #ffffff;
   box-shadow: 0 14px 36px rgba(13, 27, 42, 0.18);
 }
 
 .page-title {
-  margin-bottom: 34px;
+  margin-bottom: 22px;
   color: #111827;
   text-align: center;
 }
@@ -259,7 +272,7 @@ h2 {
 .page-title h3 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.4rem, 3vw, 2.1rem);
+  font-size: clamp(1.2rem, 2.4vw, 1.9rem);
 }
 
 .page-title p {
@@ -272,9 +285,9 @@ h2 {
 .osmd-score-reference {
   position: relative;
   width: 100%;
-  overflow: hidden;
-  border: 1px solid rgba(13, 27, 42, 0.16);
-  border-radius: 8px;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
   background: #ffffff;
 }
 
@@ -311,43 +324,8 @@ h2 {
   max-width: none !important;
 }
 
-.osmd-playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 2;
-  width: 3px;
-  border-radius: 999px;
-  background: rgba(34, 197, 94, 0.82);
-  box-shadow: 0 0 22px rgba(13, 95, 115, 0.35);
-  pointer-events: none;
-  transition: left 0.2s linear;
-}
-
-.osmd-playhead span,
-.pdf-playhead span {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #22c55e;
-  border: 3px solid #fff;
-  transform: translateX(-50%);
-}
-
-.pdf-playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 2;
-  width: 3px;
-  border-radius: 999px;
-  background: rgba(34, 197, 94, 0.82);
-  box-shadow: 0 0 22px rgba(13, 95, 115, 0.35);
-  pointer-events: none;
-  transition: left 0.2s linear;
+.OSMDCursor {
+  opacity: 0 !important;
 }
 
 .viewer-actions {
@@ -458,24 +436,24 @@ h2 {
 
 .presentation-mode .score-stage {
   grid-template-columns: 1fr;
-  min-height: calc(100vh - 110px);
+  min-height: calc(100vh - 98px);
   background: #111827;
 }
 
 .presentation-mode .score-page-wrap {
-  padding: 12px;
+  padding: 8px;
   background: #111827;
 }
 
 .presentation-mode .score-page {
   width: min(100%, 1120px);
-  min-height: calc(100vh - 150px);
-  padding: 14px;
-  background: #f8fafc;
+  min-height: calc(100vh - 130px);
+  padding: 10px;
+  background: #ffffff;
 }
 
 .presentation-mode .pdf-score-reference {
-  height: calc(100vh - 170px);
+  height: calc(100vh - 150px);
   min-height: 520px;
   border: 0;
 }
@@ -506,26 +484,32 @@ h2 {
     position: relative;
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 8px 10px;
-    padding: 10px 12px;
+    gap: 7px 8px;
+    padding: 8px 10px;
     align-items: center;
   }
 
   .round-play {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     grid-row: span 2;
   }
 
-  .musescore-toolbar > .toolbar-button {
-    min-height: 34px;
-    font-size: 0.85rem;
+  .musescore-toolbar > .toolbar-button,
+  .toolbar-upload {
+    min-height: 32px;
+    font-size: 0.82rem;
+  }
+
+  .toolbar-upload {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .tempo-control {
     grid-column: 1 / -1;
-    grid-template-columns: 1fr;
-    gap: 5px;
+    grid-template-columns: 1fr auto;
+    gap: 5px 8px;
     font-size: 0.82rem;
   }
 
@@ -572,7 +556,7 @@ h2 {
 
   .score-page-wrap {
     padding: 0;
-    overflow-x: hidden;
+    overflow-x: auto;
   }
 
   .score-page {
