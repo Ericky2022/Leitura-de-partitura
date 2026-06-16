@@ -105,6 +105,17 @@
               <p>{{ hasRenderedScore ? "Partitura renderizada" : "Pré-visualização do PDF" }}</p>
             </div>
 
+            <div class="mobile-score-title" *ngIf="pdfName || musicXmlName">
+              <strong>{{ selectedScoreDisplayName }}</strong>
+            </div>
+
+            <div class="mobile-pdf-fallback" *ngIf="pdfUrl">
+              <iframe
+                [src]="pdfUrl"
+                title="Partitura PDF original no celular"
+              ></iframe>
+            </div>
+
             <div class="osmd-score-reference" *ngIf="hasRenderedScore">
               <div
                 #osmdContainer
@@ -137,6 +148,14 @@
           <p>
             Envie um PDF de partitura ou um arquivo MusicXML para visualizar e tocar.
           </p>
+          <label class="empty-upload-button">
+            <span>Enviar partitura</span>
+            <input
+              type="file"
+              accept="application/pdf,.pdf,.musicxml,.xml,application/xml,text/xml"
+              (change)="handleScoreFileSelection($event)"
+            />
+          </label>
         </div>
       </ng-template>
 
