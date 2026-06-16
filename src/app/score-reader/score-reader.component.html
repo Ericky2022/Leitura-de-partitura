@@ -49,6 +49,15 @@
           Do início
         </button>
 
+        <label class="toolbar-upload">
+          <span>Trocar partitura</span>
+          <input
+            type="file"
+            accept="application/pdf,.pdf,.musicxml,.xml,application/xml,text/xml"
+            (change)="handleScoreFileSelection($event)"
+          />
+        </label>
+
         <div class="tempo-control">
           <label for="score-tempo">Andamento</label>
           <input
@@ -97,9 +106,6 @@
             </div>
 
             <div class="osmd-score-reference" *ngIf="hasRenderedScore">
-              <div class="osmd-playhead" [style.left.%]="playbackProgressPercent" aria-hidden="true">
-                <span></span>
-              </div>
               <div
                 #osmdContainer
                 class="osmd-container"
