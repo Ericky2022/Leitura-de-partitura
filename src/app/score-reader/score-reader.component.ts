@@ -11,6 +11,8 @@ import { FormsModule } from "@angular/forms";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 
+type InstrumentType = "piano" | "flute" | "recorder" | "sax";
+
 interface ParsedScoreNote {
   label: string;
   frequency: number | null;
@@ -49,15 +51,17 @@ export class ScoreReaderComponent implements OnDestroy {
   isPresentationMode = false;
   pdfZoom = 100;
   hasRenderedScore = false;
+  detectedInstrument = "Piano";
 
   private objectUrl = "";
   private audioContext?: AudioContext;
-  private activeOscillator?: OscillatorNode;
+  private activeOscillators: OscillatorNode[] = [];
   private playTimeout?: ReturnType<typeof setTimeout>;
   private playRunId = 0;
   private osmd?: OpenSheetMusicDisplay;
   private currentMusicXml = "";
   private playbackNotes: ParsedScoreNote[] = [];
+  private instrumentType: InstrumentType = "piano";
 
   private readonly noteFrequencyByName: Record<string, number> = {
     c3: 130.81, do3: 130.81, dó3: 130.81, d3: 146.83, re3: 146.83, ré3: 146.83,
@@ -174,7 +178,7 @@ export class ScoreReaderComponent implements OnDestroy {
     await this.audioContext.resume();
 
     this.isPlaying = true;
-    this.statusMessage = "Reproduzindo partitura.";
+    this.statusMessage = `Reproduzindo com som de ${this.detectedInstrument}.`;
     const runId = ++this.playRunId;
     void this.playNoteAtIndex(notes, startIndex, runId);
   }
@@ -207,6 +211,7 @@ export class ScoreReaderComponent implements OnDestroy {
     this.noteSequence = "";
     this.playbackNotes = [];
     this.currentNoteIndex = -1;
+    this.setInstrumentFromText(file.name);
     this.statusMessage = "PDF carregado. Convertendo para partitura interativa...";
     await this.convertPdfToMusicXml(file);
   }
@@ -222,6 +227,7 @@ export class ScoreReaderComponent implements OnDestroy {
 
     try {
       const xml = await file.text();
+      this.setInstrumentFromXml(xml, file.name);
       const notes = this.parseMusicXml(xml);
       if (notes.length === 0) {
         this.statusMessage = "Não encontrei notas tocáveis nesse MusicXML. Confira se o arquivo foi exportado corretamente.";
@@ -231,7 +237,7 @@ export class ScoreReaderComponent implements OnDestroy {
       this.playbackNotes = notes;
       this.noteSequence = this.formatNotesForSequence(notes);
       await this.renderMusicXml(xml);
-      this.statusMessage = `MusicXML carregado com ${notes.length} eventos musicais. Retornelos serão tocados uma vez.`;
+      this.statusMessage = `MusicXML carregado. Instrumento: ${this.detectedInstrument}.`;
     } catch {
       this.statusMessage = "Não foi possível ler o MusicXML. Tente exportar novamente como .musicxml ou .xml.";
     }
@@ -253,6 +259,7 @@ export class ScoreReaderComponent implements OnDestroy {
         return;
       }
 
+      this.setInstrumentFromXml(data.musicXml, file.name);
       const notes = this.parseMusicXml(data.musicXml);
       if (notes.length === 0) {
         this.statusMessage = "O PDF foi convertido, mas não encontrei notas tocáveis. Tente um PDF mais limpo ou exporte MusicXML.";
@@ -263,7 +270,7 @@ export class ScoreReaderComponent implements OnDestroy {
       this.playbackNotes = notes;
       this.noteSequence = this.formatNotesForSequence(notes);
       await this.renderMusicXml(data.musicXml);
-      this.statusMessage = `PDF convertido com ${notes.length} eventos musicais. Retornelos serão tocados uma vez.`;
+      this.statusMessage = `PDF convertido. Instrumento: ${this.detectedInstrument}.`;
     } catch {
       this.statusMessage = "PDF carregado, mas a leitura automática precisa da API local com Audiveris em execução.";
     } finally {
@@ -291,7 +298,7 @@ export class ScoreReaderComponent implements OnDestroy {
       drawTitle: true,
       drawingParameters: "compacttight",
       followCursor: true,
-      pageFormat: "Endless",
+      pageFormat: window.innerWidth <= 760 ? "Endless" : "A4_P",
       renderSingleHorizontalStaffline: false,
     });
 
@@ -303,25 +310,21 @@ export class ScoreReaderComponent implements OnDestroy {
   private applyResponsiveScoreZoom(): void {
     const width = window.innerWidth;
     if (width <= 430) {
+      this.pdfZoom = 65;
+      return;
+    }
+    if (width <= 760) {
       this.pdfZoom = 75;
       return;
     }
-
-    if (width <= 760) {
-      this.pdfZoom = 85;
-      return;
-    }
-
     this.pdfZoom = 100;
   }
 
   private injectScoreTitle(xml: string): string {
     const title = this.escapeXml(this.selectedScoreDisplayName.replace(/\.pdf$/i, ""));
-
     if (!title) return xml;
 
     let updatedXml = xml;
-
     if (/<work-title>.*?<\/work-title>/s.test(updatedXml)) {
       updatedXml = updatedXml.replace(/<work-title>.*?<\/work-title>/s, `<work-title>${title}</work-title>`);
     } else if (/<work>.*?<\/work>/s.test(updatedXml)) {
@@ -355,6 +358,7 @@ export class ScoreReaderComponent implements OnDestroy {
       .replace(/\.xml$/i, "")
       .replace(/\s+-\s+\d{4}-\d{2}-\d{2}.*$/i, "")
       .replace(/\s+Flauta\s+doce$/i, "")
+      .replace(/\s+Partitura\s+completa$/i, "")
       .trim();
   }
 
@@ -470,10 +474,7 @@ export class ScoreReaderComponent implements OnDestroy {
 
     for (let measureIndex = 0; measureIndex < measures.length; measureIndex++) {
       const measure = measures[measureIndex];
-
-      if (measure.hasForwardRepeat) {
-        repeatStartMeasureIndex = measureIndex;
-      }
+      if (measure.hasForwardRepeat) repeatStartMeasureIndex = measureIndex;
 
       expandedNotes.push(...this.cloneNotes(measure.notes));
 
@@ -484,7 +485,6 @@ export class ScoreReaderComponent implements OnDestroy {
         repeatStartMeasureIndex = measureIndex + 1;
       }
     }
-
     return expandedNotes;
   }
 
@@ -527,15 +527,11 @@ export class ScoreReaderComponent implements OnDestroy {
     };
 
     const baseDuration = durationsByType[type ?? ""];
-    if (baseDuration !== undefined) {
-      return Math.max(0.125, this.applyDotsAndTuplet(baseDuration, noteElement));
-    }
+    if (baseDuration !== undefined) return Math.max(0.125, this.applyDotsAndTuplet(baseDuration, noteElement));
 
     const durationText = noteElement.querySelector("duration")?.textContent;
     const duration = Number(durationText);
-    if (Number.isFinite(duration) && duration > 0) {
-      return Math.max(0.125, duration / Math.max(1, divisions));
-    }
+    if (Number.isFinite(duration) && duration > 0) return Math.max(0.125, duration / Math.max(1, divisions));
 
     return 1;
   }
@@ -615,33 +611,95 @@ export class ScoreReaderComponent implements OnDestroy {
   private playFrequency(frequency: number, durationSeconds: number): void {
     if (!this.audioContext) return;
 
-    const oscillator = this.audioContext.createOscillator();
-    const gain = this.audioContext.createGain();
     const now = this.audioContext.currentTime;
     const end = now + durationSeconds;
+    const gain = this.audioContext.createGain();
+    const filter = this.audioContext.createBiquadFilter();
 
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(frequency, now);
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(this.instrumentType === "sax" ? 1800 : this.instrumentType === "piano" ? 2600 : 1400, now);
+    filter.Q.setValueAtTime(this.instrumentType === "sax" ? 4 : 1.2, now);
+
+    gain.connect(filter);
+    filter.connect(this.audioContext.destination);
+
+    if (this.instrumentType === "piano") {
+      this.startOscillator(frequency, "triangle", 0.9, now, end, gain);
+      this.startOscillator(frequency * 2, "sine", 0.22, now, Math.min(end, now + 0.22), gain);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.42, now + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, Math.max(now + 0.06, end - 0.03));
+      return;
+    }
+
+    if (this.instrumentType === "sax") {
+      this.startOscillator(frequency, "sawtooth", 0.5, now, end, gain);
+      this.startOscillator(frequency * 2, "triangle", 0.12, now, end, gain);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.22, now + 0.08);
+      gain.gain.linearRampToValueAtTime(0.18, Math.max(now + 0.1, end - 0.08));
+      gain.gain.exponentialRampToValueAtTime(0.0001, Math.max(now + 0.12, end - 0.02));
+      return;
+    }
+
+    const wave: OscillatorType = this.instrumentType === "recorder" ? "sine" : "triangle";
+    this.startOscillator(frequency, wave, 0.55, now, end, gain, true);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.42, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, Math.max(now + 0.04, end - 0.04));
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.05);
+    gain.gain.linearRampToValueAtTime(0.2, Math.max(now + 0.08, end - 0.06));
+    gain.gain.exponentialRampToValueAtTime(0.0001, Math.max(now + 0.1, end - 0.02));
+  }
 
-    oscillator.connect(gain);
-    gain.connect(this.audioContext.destination);
-    oscillator.start(now);
-    oscillator.stop(end);
-    this.activeOscillator = oscillator;
+  private startOscillator(
+    frequency: number,
+    type: OscillatorType,
+    level: number,
+    start: number,
+    end: number,
+    destination: AudioNode,
+    vibrato = false,
+  ): void {
+    if (!this.audioContext) return;
+
+    const osc = this.audioContext.createOscillator();
+    const localGain = this.audioContext.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, start);
+    localGain.gain.setValueAtTime(level, start);
+    osc.connect(localGain);
+    localGain.connect(destination);
+
+    if (vibrato) {
+      const vib = this.audioContext.createOscillator();
+      const vibGain = this.audioContext.createGain();
+      vib.frequency.setValueAtTime(5.2, start);
+      vibGain.gain.setValueAtTime(3.5, start);
+      vib.connect(vibGain);
+      vibGain.connect(osc.frequency);
+      vib.start(start + 0.08);
+      vib.stop(end);
+      this.activeOscillators.push(vib);
+    }
+
+    osc.start(start);
+    osc.stop(end);
+    this.activeOscillators.push(osc);
   }
 
   private stopActiveNote(): void {
-    if (!this.activeOscillator) return;
-    try {
-      this.activeOscillator.stop();
-    } catch {
-      // A nota pode ja ter terminado.
+    for (const oscillator of this.activeOscillators) {
+      try {
+        oscillator.stop();
+      } catch {
+        // A nota pode ja ter terminado.
+      }
+      try {
+        oscillator.disconnect();
+      } catch {
+        // Nó já desconectado.
+      }
     }
-    this.activeOscillator.disconnect();
-    this.activeOscillator = undefined;
+    this.activeOscillators = [];
   }
 
   private moveOsmdCursorTo(cursorStep: number): void {
@@ -651,9 +709,7 @@ export class ScoreReaderComponent implements OnDestroy {
     try {
       cursor.reset();
       cursor.show();
-      for (let step = 0; step < cursorStep; step++) {
-        cursor.next();
-      }
+      for (let step = 0; step < cursorStep; step++) cursor.next();
     } catch {
       // Mantem a reproducao mesmo se o cursor nao conseguir sincronizar algum evento.
     }
@@ -679,7 +735,6 @@ export class ScoreReaderComponent implements OnDestroy {
     setTimeout(() => {
       const marker = this.osmdContainer?.nativeElement.querySelector<HTMLElement>(".OSMDCursor");
       const scrollArea = this.osmdContainer?.nativeElement.closest<HTMLElement>(".score-page-wrap");
-
       if (!marker || !scrollArea) return;
 
       const markerRect = marker.getBoundingClientRect();
@@ -689,17 +744,11 @@ export class ScoreReaderComponent implements OnDestroy {
       const safeLeft = areaRect.left + 24;
       const safeRight = areaRect.right - 24;
 
-      if (markerRect.top < safeTop) {
-        scrollArea.scrollBy({ top: markerRect.top - safeTop, behavior: "smooth" });
-      } else if (markerRect.bottom > safeBottom) {
-        scrollArea.scrollBy({ top: markerRect.bottom - safeBottom, behavior: "smooth" });
-      }
+      if (markerRect.top < safeTop) scrollArea.scrollBy({ top: markerRect.top - safeTop, behavior: "smooth" });
+      else if (markerRect.bottom > safeBottom) scrollArea.scrollBy({ top: markerRect.bottom - safeBottom, behavior: "smooth" });
 
-      if (markerRect.left < safeLeft) {
-        scrollArea.scrollBy({ left: markerRect.left - safeLeft, behavior: "smooth" });
-      } else if (markerRect.right > safeRight) {
-        scrollArea.scrollBy({ left: markerRect.right - safeRight, behavior: "smooth" });
-      }
+      if (markerRect.left < safeLeft) scrollArea.scrollBy({ left: markerRect.left - safeLeft, behavior: "smooth" });
+      else if (markerRect.right > safeRight) scrollArea.scrollBy({ left: markerRect.right - safeRight, behavior: "smooth" });
     }, 0);
   }
 
@@ -739,9 +788,7 @@ export class ScoreReaderComponent implements OnDestroy {
     const explicitMeasure = Number(match[5]);
     const measureNumber = Number.isFinite(explicitMeasure) && explicitMeasure > 0 ? explicitMeasure : undefined;
 
-    if (noteName === "pausa" || noteName === "rest") {
-      return { label: "Pausa", frequency: null, beats, measureNumber, isRest: true };
-    }
+    if (noteName === "pausa" || noteName === "rest") return { label: "Pausa", frequency: null, beats, measureNumber, isRest: true };
 
     if (accidental) {
       const parsedMusicXmlLabel = this.parseMusicXmlLabelToken(`${this.formatNoteName(noteName)}${accidental}${octave}`);
@@ -761,6 +808,41 @@ export class ScoreReaderComponent implements OnDestroy {
       f: "Fá", fa: "Fá", fá: "Fá", g: "Sol", sol: "Sol", a: "Lá", la: "Lá", lá: "Lá", b: "Si", si: "Si",
     };
     return labels[noteName] ?? noteName;
+  }
+
+  private setInstrumentFromXml(xml: string, fallbackText = ""): void {
+    const documentXml = new DOMParser().parseFromString(xml, "application/xml");
+    const text = [
+      fallbackText,
+      ...Array.from(documentXml.querySelectorAll("part-name, instrument-name, instrument-sound, score-instrument"))
+        .map((element) => element.textContent ?? ""),
+    ].join(" ");
+    this.setInstrumentFromText(text);
+  }
+
+  private setInstrumentFromText(text: string): void {
+    const normalized = text.toLocaleLowerCase("pt-BR");
+
+    if (normalized.includes("sax")) {
+      this.instrumentType = "sax";
+      this.detectedInstrument = normalized.includes("barit") ? "Sax Barítono" : "Saxofone";
+      return;
+    }
+
+    if (normalized.includes("flauta doce") || normalized.includes("recorder")) {
+      this.instrumentType = "recorder";
+      this.detectedInstrument = "Flauta Doce";
+      return;
+    }
+
+    if (normalized.includes("flauta") || normalized.includes("flute")) {
+      this.instrumentType = "flute";
+      this.detectedInstrument = "Flauta";
+      return;
+    }
+
+    this.instrumentType = "piano";
+    this.detectedInstrument = "Piano";
   }
 
   private revokePdfUrl(): void {
