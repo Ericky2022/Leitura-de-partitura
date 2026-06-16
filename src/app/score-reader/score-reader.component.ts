@@ -82,7 +82,7 @@ export class ScoreReaderComponent implements OnDestroy {
   }
 
   get selectedScoreDisplayName(): string {
-    return this.pdfName || this.musicXmlName || "partitura selecionada";
+    return this.cleanScoreTitle(this.pdfName || this.musicXmlName || "Partitura selecionada");
   }
 
   get currentPlayingNoteLabel(): string {
@@ -272,7 +272,8 @@ export class ScoreReaderComponent implements OnDestroy {
   }
 
   private async renderMusicXml(xml: string): Promise<void> {
-    this.currentMusicXml = xml;
+    const titledXml = this.injectScoreTitle(xml);
+    this.currentMusicXml = titledXml;
     this.hasRenderedScore = true;
     this.applyResponsiveScoreZoom();
     await new Promise((resolve) => setTimeout(resolve));
@@ -290,6 +291,8 @@ export class ScoreReaderComponent implements OnDestroy {
       drawTitle: true,
       drawingParameters: "compacttight",
       followCursor: true,
+      pageFormat: "Endless",
+      renderSingleHorizontalStaffline: false,
     });
 
     await this.osmd.load(this.currentMusicXml);
@@ -300,16 +303,59 @@ export class ScoreReaderComponent implements OnDestroy {
   private applyResponsiveScoreZoom(): void {
     const width = window.innerWidth;
     if (width <= 430) {
-      this.pdfZoom = 55;
+      this.pdfZoom = 75;
       return;
     }
 
     if (width <= 760) {
-      this.pdfZoom = 65;
+      this.pdfZoom = 85;
       return;
     }
 
     this.pdfZoom = 100;
+  }
+
+  private injectScoreTitle(xml: string): string {
+    const title = this.escapeXml(this.selectedScoreDisplayName.replace(/\.pdf$/i, ""));
+
+    if (!title) return xml;
+
+    let updatedXml = xml;
+
+    if (/<work-title>.*?<\/work-title>/s.test(updatedXml)) {
+      updatedXml = updatedXml.replace(/<work-title>.*?<\/work-title>/s, `<work-title>${title}</work-title>`);
+    } else if (/<work>.*?<\/work>/s.test(updatedXml)) {
+      updatedXml = updatedXml.replace(/<work>/, `<work><work-title>${title}</work-title>`);
+    } else {
+      updatedXml = updatedXml.replace(/<score-partwise([^>]*)>/, `<score-partwise$1><work><work-title>${title}</work-title></work>`);
+    }
+
+    if (/<movement-title>.*?<\/movement-title>/s.test(updatedXml)) {
+      updatedXml = updatedXml.replace(/<movement-title>.*?<\/movement-title>/s, `<movement-title>${title}</movement-title>`);
+    } else {
+      updatedXml = updatedXml.replace(/<\/work>/, `</work><movement-title>${title}</movement-title>`);
+    }
+
+    return updatedXml;
+  }
+
+  private escapeXml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
+
+  private cleanScoreTitle(fileName: string): string {
+    return fileName
+      .replace(/\.pdf$/i, "")
+      .replace(/\.musicxml$/i, "")
+      .replace(/\.xml$/i, "")
+      .replace(/\s+-\s+\d{4}-\d{2}-\d{2}.*$/i, "")
+      .replace(/\s+Flauta\s+doce$/i, "")
+      .trim();
   }
 
   private clearRenderedScore(): void {
