@@ -4,7 +4,6 @@ body {
   min-height: 100%;
 }
 
-/* Ajustes globais do leitor de partitura */
 .empty-upload-button {
   position: relative;
   display: inline-flex;
@@ -72,6 +71,7 @@ body {
   }
 
   .score-reader-container .toolbar-upload input {
+    position: absolute !important;
     inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
@@ -80,14 +80,8 @@ body {
     cursor: pointer !important;
   }
 
-  .score-reader-container .tempo-control {
-    grid-column: 1 / -1 !important;
-  }
-
-  .score-reader-container .viewer-actions {
-    grid-column: 1 / -1 !important;
-  }
-
+  .score-reader-container .tempo-control,
+  .score-reader-container .viewer-actions,
   .score-reader-container .playing-now {
     grid-column: 1 / -1 !important;
   }
@@ -95,7 +89,7 @@ body {
   .score-reader-container .score-page-wrap {
     padding: 0 !important;
     background: #fff !important;
-    overflow-x: hidden !important;
+    overflow: auto !important;
   }
 
   .score-reader-container .score-page {
@@ -111,29 +105,31 @@ body {
     background: #fff;
     color: #111827;
     font-family: Georgia, 'Times New Roman', serif;
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     line-height: 1.15;
     text-align: center;
   }
 
   .mobile-pdf-fallback {
-    display: block !important;
-    width: 100% !important;
-    height: calc(100vh - 250px) !important;
-    min-height: 430px !important;
-    overflow: hidden !important;
-    background: #fff !important;
-  }
-
-  .mobile-pdf-fallback iframe {
-    width: 100% !important;
-    height: 100% !important;
-    border: 0 !important;
-    background: #fff !important;
+    display: none !important;
   }
 
   .score-reader-container .osmd-score-reference {
-    display: none !important;
+    display: block !important;
+    width: 100% !important;
+    overflow: auto !important;
+    background: #fff !important;
+  }
+
+  .score-reader-container .osmd-container {
+    min-width: 100% !important;
+    margin-left: 0 !important;
+    transform-origin: top left !important;
+  }
+
+  .score-reader-container .OSMDCursor {
+    opacity: 0.45 !important;
+    background: rgba(34, 197, 94, 0.45) !important;
   }
 
   .score-reader-container .advanced-editor {
