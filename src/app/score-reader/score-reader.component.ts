@@ -62,6 +62,8 @@ export class ScoreReaderComponent implements OnDestroy {
   private currentMusicXml = "";
   private playbackNotes: ParsedScoreNote[] = [];
   private instrumentType: InstrumentType = "piano";
+  private osmdCursorStep = 0;
+  private playbackBeatDurationMs = 60000 / 90;
 
   private readonly noteFrequencyByName: Record<string, number> = {
     c3: 130.81, do3: 130.81, dó3: 130.81, d3: 146.83, re3: 146.83, ré3: 146.83,
@@ -177,6 +179,7 @@ export class ScoreReaderComponent implements OnDestroy {
     this.audioContext ??= new AudioContext();
     await this.audioContext.resume();
 
+    this.playbackBeatDurationMs = 60000 / Math.max(40, Math.min(180, this.tempo));
     this.isPlaying = true;
     this.statusMessage = `Reproduzindo com som de ${this.detectedInstrument}.`;
     const runId = ++this.playRunId;
@@ -367,6 +370,7 @@ export class ScoreReaderComponent implements OnDestroy {
     this.hasRenderedScore = false;
     this.playbackNotes = [];
     this.osmd = undefined;
+    this.osmdCursorStep = 0;
     if (this.osmdContainer?.nativeElement) {
       this.osmdContainer.nativeElement.innerHTML = "";
     }
@@ -593,8 +597,7 @@ export class ScoreReaderComponent implements OnDestroy {
     }
 
     const note = notes[index];
-    const beatDurationMs = 60000 / Math.max(40, Math.min(180, this.tempo));
-    const durationMs = Math.max(80, beatDurationMs * note.beats);
+    const durationMs = Math.max(80, this.playbackBeatDurationMs * note.beats);
 
     this.currentNoteIndex = index;
     this.moveOsmdCursorTo(note.cursorStep ?? index);
@@ -706,10 +709,20 @@ export class ScoreReaderComponent implements OnDestroy {
     const cursor = this.getOsmdCursor();
     if (!cursor) return;
 
+    const targetStep = Math.max(0, Math.floor(cursorStep));
+
     try {
-      cursor.reset();
       cursor.show();
-      for (let step = 0; step < cursorStep; step++) cursor.next();
+
+      if (targetStep < this.osmdCursorStep) {
+        cursor.reset();
+        this.osmdCursorStep = 0;
+      }
+
+      while (this.osmdCursorStep < targetStep) {
+        cursor.next();
+        this.osmdCursorStep++;
+      }
     } catch {
       // Mantem a reproducao mesmo se o cursor nao conseguir sincronizar algum evento.
     }
@@ -717,6 +730,7 @@ export class ScoreReaderComponent implements OnDestroy {
 
   private resetOsmdCursor(): void {
     const cursor = this.getOsmdCursor();
+    this.osmdCursorStep = 0;
     if (!cursor) return;
 
     try {
