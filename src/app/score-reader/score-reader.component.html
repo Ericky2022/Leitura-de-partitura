@@ -7,7 +7,7 @@
       <header class="score-hero">
         <div>
           <p class="eyebrow">Leitor de partitura</p>
-          <h2>{{ selectedScoreDisplayName }}</h2>
+          <h2>{{ selectedScoreDisplayName.split(' - ').length > 2 ? selectedScoreDisplayName.split(' - ').slice(0, 2).join(' - ') : selectedScoreDisplayName }}</h2>
           <p class="subtitle">
             Envie um PDF de partitura. O app converte para MusicXML, mostra a
             partitura real como em um leitor online e toca as notas reconhecidas.
@@ -101,12 +101,12 @@
         <main class="score-page-wrap">
           <div class="score-page">
             <div class="page-title">
-              <h3>{{ selectedScoreDisplayName }}</h3>
+              <h3>{{ selectedScoreDisplayName.split(' - ').length > 2 ? selectedScoreDisplayName.split(' - ').slice(0, 2).join(' - ') : selectedScoreDisplayName }}</h3>
               <p>{{ hasRenderedScore ? "Partitura renderizada" : "Pré-visualização do PDF" }}</p>
             </div>
 
             <div class="mobile-score-title" *ngIf="pdfName || musicXmlName">
-              <strong>{{ selectedScoreDisplayName }}</strong>
+              <strong>{{ selectedScoreDisplayName.split(' - ').length > 2 ? selectedScoreDisplayName.split(' - ').slice(0, 2).join(' - ') : selectedScoreDisplayName }}</strong>
             </div>
 
             <div class="mobile-pdf-fallback" *ngIf="pdfUrl">
