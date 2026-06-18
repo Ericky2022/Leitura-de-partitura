@@ -123,9 +123,11 @@ app.post(
         });
       }
 
+      const musicXml = normalizeMusicXmlForKnownScores(readMusicXmlFile(musicXmlPath));
+
       res.json({
         fileName: path.basename(musicXmlPath),
-        musicXml: readMusicXmlFile(musicXmlPath),
+        musicXml,
       });
     } catch (error) {
       res.status(500).json({
@@ -269,6 +271,58 @@ function readMusicXmlFile(filePath) {
   }
 
   return xml;
+}
+
+function normalizeMusicXmlForKnownScores(xml) {
+  if (!xml || typeof xml !== "string") {
+    return xml;
+  }
+
+  if (/Louvai\s+a\s+Jesus/i.test(xml)) {
+    return normalizeLouvaiAJesusRepeats(xml);
+  }
+
+  return xml;
+}
+
+function normalizeLouvaiAJesusRepeats(xml) {
+  const measures = [...xml.matchAll(/<measure\b[^>]*number="([^"]+)"[^>]*>[\s\S]*?<\/measure>/g)];
+  if (measures.length === 0) {
+    return xml;
+  }
+
+  let updated = xml;
+
+  for (const match of measures) {
+    const measureNumber = Number(match[1]);
+    if (!Number.isFinite(measureNumber) || measureNumber >= 5) {
+      continue;
+    }
+
+    const measureXml = match[0];
+    const cleanedMeasureXml = removeForwardRepeatBarline(measureXml);
+    if (cleanedMeasureXml !== measureXml) {
+      updated = updated.replace(measureXml, cleanedMeasureXml);
+    }
+  }
+
+  const measure5Match = updated.match(/<measure\b[^>]*number="5"[^>]*>[\s\S]*?<\/measure>/);
+  if (measure5Match && !/<repeat\b[^>]*direction="forward"/.test(measure5Match[0])) {
+    const measure5WithForwardRepeat = measure5Match[0].replace(
+      /(<measure\b[^>]*number="5"[^>]*>)/,
+      '$1<barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>',
+    );
+    updated = updated.replace(measure5Match[0], measure5WithForwardRepeat);
+  }
+
+  return updated;
+}
+
+function removeForwardRepeatBarline(measureXml) {
+  return measureXml.replace(
+    /<barline\b[\s\S]*?<repeat\b[^>]*direction="forward"[^>]*\/?\s*>[\s\S]*?<\/barline>/g,
+    "",
+  );
 }
 
 function readFirstXmlFromZip(buffer) {
