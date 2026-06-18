@@ -34,6 +34,12 @@ body {
   display: none;
 }
 
+/* Esconde o titulo duplicado que o OSMD desenha dentro do SVG.
+   O app mostra o titulo limpo acima da partitura. */
+.score-reader-container .osmd-container svg text:first-of-type {
+  display: none !important;
+}
+
 /* Computador: página centralizada no formato A4, parecida com MuseScore */
 @media (min-width: 761px) {
   .score-reader-container .score-page-wrap {
@@ -134,7 +140,17 @@ body {
   }
 
   .mobile-score-title {
-    display: none !important;
+    display: block !important;
+    width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    padding: 8px 10px 6px !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-family: Georgia, 'Times New Roman', serif !important;
+    font-size: 1rem !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
   }
 
   .mobile-pdf-fallback {
@@ -149,7 +165,7 @@ body {
     margin-left: calc(50% - 50vw) !important;
     overflow: auto !important;
     background: #e9e9ee !important;
-    padding: 12px 0 28px !important;
+    padding: 8px 0 28px !important;
     box-sizing: border-box !important;
   }
 
